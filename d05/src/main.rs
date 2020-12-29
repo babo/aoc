@@ -63,17 +63,24 @@ fn main() {
     // File hosts must exist in current path before this produces output
     if let Ok(lines) = read_lines("./input.txt") {
         let mut maxi = 0;
+        let mut occupied = [0; 1024];
+
         for raw in lines {
             let line = raw.unwrap();
             let seat = to_location(&line).take();
             if let Some((_, _, m)) = seat {
+                occupied[m as usize] -= 2;
+                occupied[(m + 1) as usize] += 1;
+                occupied[(m - 1) as usize] += 1;
+
                 if m > maxi {
                     maxi = m;
                 }
             }
         }
+        let mid = occupied.into_iter().position(|x| *x == 2);
 
-        println!("Result {}", maxi);
+        println!("Result {} {:?}", maxi, mid);
     }
 }
 
