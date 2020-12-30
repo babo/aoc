@@ -5,28 +5,34 @@ use std::path::Path;
 fn main() {
     if let Ok(lines) = read_lines("./input.txt") {
         let mut groups = 1;
+        let mut members = 0u32;
         let mut answers = [0u32; 26];
         let ascii_a = 'a' as u8;
-        let mut count = 0u32;
+        let mut count = 0usize;
 
         for raw in lines {
             let line = raw.unwrap();
             if line == "" {
-                groups += 1;
-                count += answers.iter().sum::<u32>();
+                count += answers.iter().filter(|x| **x == members).count();
                 answers = [0u32; 26];
-            }
-            answers = line.chars().fold(answers, |mut acc, x| {
-                if x.is_ascii_lowercase() {
-                    let pos = x as u8 - ascii_a;
-                    acc[ pos as usize ] |= 1;
-                    acc
-                } else {
-                    acc
+                members = 0;
+            } else {
+                if members == 0 {
+                    groups += 1;
                 }
-            });
+                members += 1;
+                answers = line.chars().fold(answers, |mut acc, x| {
+                    if x.is_ascii_lowercase() {
+                        let pos = x as u8 - ascii_a;
+                        acc[ pos as usize ] += 1;
+                        acc
+                    } else {
+                        acc
+                    }
+                });
+            }
         }
-        count += answers.iter().sum::<u32>();
+        count += answers.iter().filter(|x| **x == members).count();
         println!("{} {}", groups, count);
     }
 }
