@@ -78,7 +78,7 @@ fn main() {
                 }
             }
         }
-        let mid = occupied.into_iter().position(|x| *x == 2);
+        let mid = occupied.iter().position(|x| *x == 2);
 
         println!("Result {} {:?}", maxi, mid);
     }
