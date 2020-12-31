@@ -32,6 +32,7 @@ dependencies = [
 name = "d07"
 version = "0.1.0"
 dependencies = [
+ "lazy_static",
  "pretty_assertions",
  "regex",
 ]
