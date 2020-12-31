@@ -26,24 +26,19 @@ mod tests {
     }
 
     #[test]
-    fn test_selection() {
+    fn test_part_a() {
         let pairs = get_pairs();
         let contain = select_bags("shiny gold", &pairs);
 
-        assert_eq!(contain.len(), 0);
+        assert_eq!(contain.len(), 287);
     }
 }
 
 fn main() {
-    if let Ok(all_lines) = content() {
-        let mut count = 0usize;
-        for line in all_lines.lines() {
-            if line.len() == 0 {
-                count += 1;
-            }
-        }
-        println!("Count: {}", count);
-    }
+    let pairs = get_pairs();
+    let contain = select_bags("shiny gold", &pairs);
+
+    println!("Part A: {}", contain.len());
 }
 
 fn content() -> Result<String, io::Error> {
