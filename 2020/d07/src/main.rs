@@ -1,7 +1,7 @@
 use regex::Regex;
+use std::collections::HashSet;
 use std::fs::read_to_string;
 use std::io::{self};
-use std::collections::HashSet;
 use std::iter::FromIterator;
 
 #[macro_use]
@@ -20,9 +20,23 @@ mod tests {
     }
 
     #[test]
-    fn test_processing() {
+    fn test_processing_step_one() {
         let pairs = get_pairs();
         assert_ne!(pairs.len(), 0);
+    }
+
+    #[test]
+    fn test_processing_step_two() {
+        let pairs = vec![
+            (String::from("green"), String::from("blue"), 3),
+            (String::from("green"), String::from("red"), 2),
+            (String::from("red"), String::from("blue"), 5),
+            (String::from("blue"), String::from(""), 0),
+        ];
+        assert_eq!(bags_in("red", 1, &pairs), 6);
+        assert_eq!(bags_in("red", 3, &pairs), 18);
+        assert_eq!(bags_in("green", 1, &pairs), 16);
+        assert_eq!(bags_in("green", 5, &pairs), 80);
     }
 
     #[test]
@@ -32,13 +46,32 @@ mod tests {
 
         assert_eq!(contain.len(), 287);
     }
+
+    #[test]
+    fn test_empty_bags() {
+        let pairs = get_pairs();
+
+        assert_eq!(bags_in("shiny gold", 0, &pairs), 0);
+        assert_eq!(bags_in("plaid teal", 1, &pairs), 1);
+        assert_eq!(bags_in("drab magenta", 99, &pairs), 99);
+    }
+
+    #[test]
+    fn test_part_b() {
+        let pairs = get_pairs();
+
+        // For the final, you don'n need to count the shiny gold;
+        assert_eq!(bags_in("shiny gold", 1, &pairs) - 1, 48160);
+    }
 }
 
 fn main() {
     let pairs = get_pairs();
     let contain = bags_out("shiny gold", &pairs);
+    let bags = bags_in("shiny gold", 1, &pairs) - 1;
 
     println!("Part A: {}", contain.len());
+    println!("Part B: {}", bags);
 }
 
 fn content() -> Result<String, io::Error> {
@@ -82,7 +115,11 @@ fn get_pairs() -> Vec<(String, String, usize)> {
 }
 
 fn bags_out(color: &str, pairs: &Vec<(String, String, usize)>) -> Vec<String> {
-    let direct: Vec<String> = pairs.iter().filter(|x| x.1 == color).map(|x| String::from(&x.0)).collect();
+    let direct: Vec<String> = pairs
+        .iter()
+        .filter(|x| x.1 == color)
+        .map(|x| String::from(&x.0))
+        .collect();
     let children = direct.iter().map(|x| bags_out(&x, pairs)).flatten();
 
     let mut result: HashSet<String> = HashSet::from_iter(children);
@@ -91,4 +128,13 @@ fn bags_out(color: &str, pairs: &Vec<(String, String, usize)>) -> Vec<String> {
     }
 
     Vec::from_iter(result.into_iter())
+}
+
+fn bags_in(color: &str, count: usize, pairs: &Vec<(String, String, usize)>) -> usize {
+    if count == 0 {
+        return 0usize;
+    }
+    println!("{} {}", count, color);
+    let direct = pairs.iter().filter(|x| x.0 == color);
+    direct.fold(count, |acc, x| acc + bags_in(&x.1, count * x.2, pairs))
 }
