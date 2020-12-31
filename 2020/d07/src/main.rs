@@ -28,7 +28,7 @@ mod tests {
     #[test]
     fn test_part_a() {
         let pairs = get_pairs();
-        let contain = select_bags("shiny gold", &pairs);
+        let contain = bags_out("shiny gold", &pairs);
 
         assert_eq!(contain.len(), 287);
     }
@@ -36,7 +36,7 @@ mod tests {
 
 fn main() {
     let pairs = get_pairs();
-    let contain = select_bags("shiny gold", &pairs);
+    let contain = bags_out("shiny gold", &pairs);
 
     println!("Part A: {}", contain.len());
 }
@@ -45,7 +45,7 @@ fn content() -> Result<String, io::Error> {
     Ok(read_to_string("./input.txt")?)
 }
 
-fn get_pairs() -> Vec<(String, String)> {
+fn get_pairs() -> Vec<(String, String, usize)> {
     lazy_static! {
         static ref RE_SINGLE: Regex =
             Regex::new(r"^(\w+ \w+) bags contain no other bags.$").unwrap();
@@ -61,26 +61,29 @@ fn get_pairs() -> Vec<(String, String)> {
         if RE_MANY.is_match(line) {
             let cap = RE_MANY.captures(line).unwrap();
             let left = cap.get(1).unwrap().as_str();
+            let n = cap.get(3).unwrap().as_str().parse::<usize>().unwrap();
             let right = cap.get(4).unwrap().as_str();
 
-            contain.push((String::from(left), String::from(right)));
+            contain.push((String::from(left), String::from(right), n));
 
             for cap in RE_SUB.captures_iter(line) {
                 let right = cap.get(2).unwrap().as_str();
-                contain.push((String::from(left), String::from(right)));
+                let n = cap.get(1).unwrap().as_str().parse::<usize>().unwrap();
+                contain.push((String::from(left), String::from(right), n));
             }
         } else {
             // Not used for now
             let cap = RE_SINGLE.captures(line).unwrap();
-            cap.get(1).unwrap().as_str();
+            let left = cap.get(1).unwrap().as_str();
+            contain.push((String::from(left), String::from(""), 0));
         }
     }
     contain
 }
 
-fn select_bags(color: &str, pairs: &Vec<(String, String)>) -> Vec<String> {
+fn bags_out(color: &str, pairs: &Vec<(String, String, usize)>) -> Vec<String> {
     let direct: Vec<String> = pairs.iter().filter(|x| x.1 == color).map(|x| String::from(&x.0)).collect();
-    let children = direct.iter().map(|x| select_bags(&x, pairs)).flatten();
+    let children = direct.iter().map(|x| bags_out(&x, pairs)).flatten();
 
     let mut result: HashSet<String> = HashSet::from_iter(children);
     for x in direct {
