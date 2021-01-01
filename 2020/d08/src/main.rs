@@ -6,8 +6,9 @@ use std::io::{self};
 #[macro_use]
 extern crate lazy_static;
 
+#[derive(Copy, Clone)]
 enum Inst {
-    NOP,
+    NOP(i32),
     JMP(i32),
     ACC(i32),
 }
@@ -28,8 +29,17 @@ mod tests {
     fn test_step_a() -> Result<(), io::Error> {
         let c = content().unwrap();
         let inst = read_code(&c);
-        let res = execute(0, 0, &inst);
+        let res = find_loop(&inst);
         assert_eq!(res, 1087);
+        Ok(())
+    }
+
+    #[test]
+    fn test_step_b() -> Result<(), io::Error> {
+        let c = content().unwrap();
+        let inst = read_code(&c);
+        let res = fix_code(&inst);
+        assert_eq!(res, 780);
         Ok(())
     }
 }
@@ -37,8 +47,10 @@ mod tests {
 fn main() {
     let c = content().unwrap();
     let inst = read_code(&c);
-    let res = execute(0, 0, &inst);
-    println!("Step A: {}", res);
+    let a = find_loop(&inst);
+    let b = fix_code(&inst);
+    println!("Step A: {}", a);
+    println!("Step B: {}", b);
 }
 
 fn content() -> Result<String, io::Error> {
@@ -53,33 +65,30 @@ fn read_code(content: &str) -> Vec<Inst> {
         .lines()
         .map(|line| -> Inst {
             let raw = RE_SINGLE.captures(line);
-            if raw.is_none() {
-                println!("{}", line);
-            }
-            let cap = raw.unwrap();
+            let cap = raw.expect(&format!("Line doesn't match: {}", line));
             let left = cap.get(1).unwrap().as_str();
             let right = cap.get(2).unwrap().as_str().parse::<i32>().unwrap();
 
             match left {
-                "nop" => Inst::NOP,
+                "nop" => Inst::NOP(right),
                 "acc" => Inst::ACC(right),
                 "jmp" => Inst::JMP(right),
-                _ => Inst::NOP,
+                _ => panic!("Should not happen, already catched"),
             }
         })
         .collect();
     p
 }
 
-fn execute(pos: usize, acc: i32, inst: &Vec<Inst>) -> i32 {
-    let mut pos = pos as i32;
-    let mut acc = acc;
+fn find_loop(inst: &Vec<Inst>) -> i32 {
+    let mut pos = 0i32;
+    let mut acc = 0i32;
     let mut seen = HashSet::new();
 
     loop {
         seen.insert(pos);
         match inst[pos as usize] {
-            Inst::NOP => pos += 1,
+            Inst::NOP(_) => pos += 1,
             Inst::JMP(p) => pos += p,
             Inst::ACC(a) => {
                 pos += 1;
@@ -91,4 +100,67 @@ fn execute(pos: usize, acc: i32, inst: &Vec<Inst>) -> i32 {
         }
     }
     acc
+}
+
+fn fix_code(orig: &Vec<Inst>) -> i32 {
+    let mut acc: i32;
+    let mut pos = 0usize;
+    let mut seen = HashSet::new();
+
+    loop {
+        seen.insert(pos);
+        match orig[pos] {
+            Inst::NOP(_) => pos += 1,
+            Inst::JMP(p) => pos = (pos as i32 + p) as usize,
+            Inst::ACC(_) => pos += 1,
+        }
+        if seen.contains(&pos) {
+            break;
+        }
+    }
+    // One of these
+    let ops: Vec<usize> = seen
+        .iter()
+        .filter(|x| match orig[**x] {
+            Inst::ACC(_) => false,
+            _ => true,
+        })
+        .map(|x| *x)
+        .collect();
+
+    let mut inst: Vec<Inst> = Vec::new();
+    for x in orig.iter() {
+        inst.push(*x);
+    }
+
+    for fpos in ops {
+        inst[fpos] = match orig[fpos] {
+            Inst::NOP(p) => Inst::JMP(p),
+            Inst::JMP(p) => Inst::NOP(p),
+            _ => panic!("All ACC should be filtered"),
+        };
+        acc = 0;
+        pos = 0;
+        seen.clear();
+
+        loop {
+            seen.insert(pos);
+            match inst[pos as usize] {
+                Inst::NOP(_) => pos += 1,
+                Inst::JMP(p) => pos = (pos as i32 + p) as usize,
+                Inst::ACC(a) => {
+                    acc += a;
+                    pos += 1;
+                }
+            }
+            if seen.contains(&pos) {
+                break;
+            }
+            if pos == inst.len() {
+                return acc;
+            }
+        }
+        inst[fpos] = orig[fpos];
+    }
+    panic!("No solution?")
 }
