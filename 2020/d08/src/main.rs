@@ -102,16 +102,16 @@ fn find_loop(inst: &Vec<Inst>) -> i32 {
     acc
 }
 
-fn fix_code(orig: &Vec<Inst>) -> i32 {
+fn fix_code(inst: &Vec<Inst>) -> i32 {
     let mut acc: i32;
-    let mut pos = 0usize;
+    let mut pos = 0i32;
     let mut seen = HashSet::new();
 
     loop {
         seen.insert(pos);
-        match orig[pos] {
+        match inst[pos as usize] {
             Inst::NOP(_) => pos += 1,
-            Inst::JMP(p) => pos = (pos as i32 + p) as usize,
+            Inst::JMP(p) => pos += p,
             Inst::ACC(_) => pos += 1,
         }
         if seen.contains(&pos) {
@@ -119,48 +119,45 @@ fn fix_code(orig: &Vec<Inst>) -> i32 {
         }
     }
     // One of these
-    let ops: Vec<usize> = seen
+    let positions: Vec<i32> = seen
         .iter()
-        .filter(|x| match orig[**x] {
+        .filter(|x| match inst[**x as usize] {
             Inst::ACC(_) => false,
             _ => true,
         })
         .map(|x| *x)
         .collect();
 
-    let mut inst: Vec<Inst> = Vec::new();
-    for x in orig.iter() {
-        inst.push(*x);
-    }
-
-    for fpos in ops {
-        inst[fpos] = match orig[fpos] {
-            Inst::NOP(p) => Inst::JMP(p),
-            Inst::JMP(p) => Inst::NOP(p),
-            _ => panic!("All ACC should be filtered"),
-        };
+    for fix_at in positions {
         acc = 0;
         pos = 0;
         seen.clear();
 
         loop {
             seen.insert(pos);
-            match inst[pos as usize] {
-                Inst::NOP(_) => pos += 1,
-                Inst::JMP(p) => pos = (pos as i32 + p) as usize,
-                Inst::ACC(a) => {
-                    acc += a;
-                    pos += 1;
+            if pos != fix_at {
+                match inst[pos as usize] {
+                    Inst::NOP(_) => pos += 1,
+                    Inst::JMP(p) => pos += p,
+                    Inst::ACC(a) => {
+                        acc += a;
+                        pos += 1;
+                    }
+                }
+            } else {
+                match inst[pos as usize] {
+                    Inst::NOP(p) => pos += p,
+                    Inst::JMP(_) => pos += 1,
+                    Inst::ACC(_) => panic!("ACC should be filtered"),
                 }
             }
             if seen.contains(&pos) {
                 break;
             }
-            if pos == inst.len() {
+            if pos == inst.len() as i32 {
                 return acc;
             }
         }
-        inst[fpos] = orig[fpos];
     }
     panic!("No solution?")
 }
