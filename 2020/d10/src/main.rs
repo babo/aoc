@@ -7,6 +7,24 @@ fn content() -> Result<String, io::Error> {
 
 fn combinations(n: &[u32]) -> u128 {
     let m = n.len();
+    let mut a = 0usize;
+    let mut b = 0usize;
+    let mut sol = 1u128;
+
+    while b + 1 < m {
+        if n[b] + 3 == n[b + 1] {
+            b += 1;
+            sol *= sub_combinations(&n[a..b]);
+            a = b;
+        } else {
+            b += 1;
+        }
+    }
+    sol * sub_combinations(&n[a..b + 1])
+}
+
+fn sub_combinations(n: &[u32]) -> u128 {
+    let m = n.len();
 
     if m > 3 {
         let cont = m > 4;
@@ -26,12 +44,7 @@ fn combinations(n: &[u32]) -> u128 {
             }
             return 2;
         }
-        if n[1] == n[0] + 3 {
-            if cont {
-                return combinations(&n[1..]);
-            }
-            return 1;
-        }
+
         return combinations(&n[2..]);
     }
 
@@ -68,6 +81,7 @@ fn solution_b() -> u128 {
         .filter(|x| x.is_some())
         .map(|x| x.unwrap())
         .collect();
+    all.push(0);
     all.sort();
     all.push(all.last().unwrap() + 3);
     combinations(&all)
@@ -102,11 +116,6 @@ mod tests {
             .filter(|x| x.is_none());
         assert_eq!(a.count(), 0);
         Ok(())
-    }
-
-    #[test]
-    fn test_solution_a() {
-        assert_eq!(solution_a(), 1856);
     }
 
     #[test]
@@ -155,5 +164,15 @@ mod tests {
         ];
 
         assert_eq!(combinations(&d), 19208);
+    }
+
+    #[test]
+    fn test_solution_a() {
+        assert_eq!(solution_a(), 1856);
+    }
+
+    #[test]
+    fn test_solution_b() {
+        assert_eq!(solution_b(), 2314037239808);
     }
 }
