@@ -44,7 +44,63 @@ fn _pprint(plan: &[u16; W * H]) {
     }
 }
 
-fn turn(plan: &[u16; W * H]) -> Option<[u16; W * H]> {
+fn turn_a(plan: &[u16; W * H]) -> Option<[u16; W * H]> {
+    let mut empty: Vec<(usize, usize)> = Vec::new();
+    let mut occupy: Vec<(usize, usize)> = Vec::new();
+
+    for i in 0..plan.len() {
+        if plan[i] & 1024 == 1024 {
+            let xy = (i % W, i / W);
+
+            if (plan[i] & 512) == 512 && (plan[i] & 255) >= 4 {
+                empty.push(xy);
+            }
+            if (plan[i] & 1023) == 0 {
+                occupy.push(xy);
+            }
+        }
+    }
+    // println!("Changes: {} {}", empty.len(), occupy.len());
+    if empty.len() == 0 && occupy.len() == 0 {
+        return None;
+    }
+    let mut rtv = [0u16; W * H];
+    for i in 0..plan.len() {
+        rtv[i] = plan[i];
+    }
+
+    for xy in empty.iter() {
+        let (x, y) = xy;
+        for xx in x - 1..x + 2 {
+            for yy in y - 1..y + 2 {
+                if !(xx == *x && yy == *y) {
+                    let p = xx + yy * W;
+                    if rtv[p] & 1024 == 1024 {
+                        rtv[p] = (rtv[p] & 1536) + (rtv[p] & 255) - 1;
+                    }
+                }
+            }
+        }
+        rtv[x + y * W] -= 512;
+    }
+    for xy in occupy.iter() {
+        let (x, y) = xy;
+        for xx in x - 1..x + 2 {
+            for yy in y - 1..y + 2 {
+                if !(xx == *x && yy == *y) {
+                    let p = xx + yy * W;
+                    if rtv[p] & 1024 == 1024 {
+                        rtv[p] = (rtv[p] & 1536) + (rtv[p] & 255) + 1;
+                    }
+                }
+            }
+        }
+        rtv[x + y * W] += 512;
+    }
+    Some(rtv)
+}
+
+fn turn_b(plan: &[u16; W * H]) -> Option<[u16; W * H]> {
     let mut empty: Vec<(usize, usize)> = Vec::new();
     let mut occupy: Vec<(usize, usize)> = Vec::new();
 
@@ -103,7 +159,7 @@ fn turn(plan: &[u16; W * H]) -> Option<[u16; W * H]> {
 fn solution_a(content: &str) -> usize {
     let mut fp = to_floorplan(content);
     loop {
-        match turn(&fp) {
+        match turn_a(&fp) {
             None => break,
             Some(n) => fp = n,
         }
@@ -118,18 +174,32 @@ fn solution_a(content: &str) -> usize {
     c
 }
 
-fn solution_b() -> u128 {
-    0
+fn solution_b(content: &str) -> usize {
+    let mut fp = to_floorplan(content);
+    loop {
+        match turn_b(&fp) {
+            None => break,
+            Some(n) => fp = n,
+        }
+        // pprint(&fp);
+    }
+    let mut c = 0usize;
+    for x in fp.iter() {
+        if x & 1536 == 1536 {
+            c += 1;
+        }
+    }
+    c
 }
 
 fn main() {
     let c = content().unwrap();
 
     let a = solution_a(&c);
-    let b = solution_b();
+    let b = solution_b(&c);
 
-    println!("Step A: {:?}", a);
-    println!("Step B: {:?}", b);
+    println!("Step A: {}", a);
+    println!("Step B: {}", b);
 }
 
 #[cfg(test)]
@@ -144,7 +214,7 @@ mod tests {
     }
 
     #[test]
-    fn test_reading_map() {
+    fn test_turn_a() {
         let sample = "L.LL.LL.LL
 LLLLLLL.LL
 L.L.L..L..
@@ -165,5 +235,29 @@ L.LLLLL.LL";
         let c = content().unwrap();
         let a = solution_a(&c);
         assert_eq!(a, 2178);
+    }
+
+    #[test]
+    fn test_turn_b() {
+        let sample = "L.LL.LL.LL
+LLLLLLL.LL
+L.L.L..L..
+LLLL.LL.LL
+L.LL.LL.LL
+L.LLLLL.LL
+..L.L.....
+LLLLLLLLLL
+L.LLLLLL.L
+L.LLLLL.LL";
+
+        let a = solution_b(&sample);
+        assert_eq!(a, 26);
+    }
+
+    #[test]
+    fn test_solution_b() {
+        let c = content().unwrap();
+        let a = solution_b(&c);
+        assert_eq!(a, 0);
     }
 }
