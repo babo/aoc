@@ -28,8 +28,8 @@ fn solution_a() -> u32 {
     play_a(&DAILY, 2019)
 }
 
-fn solution_b() -> i32 {
-    0
+fn solution_b() -> u32 {
+    play_a(&DAILY, 30000000 - 1)
 }
 
 fn main() {
@@ -51,6 +51,12 @@ mod tests {
     }
 
     #[test]
+    fn test_play_b() {
+        let input: [u32; 3] = [0, 3, 6];
+        assert_eq!(play_a(&input, 30000000 - 1), 175594);
+    }
+
+    #[test]
     fn test_play_aa() {
         let input: [u32; 3] = [0, 3, 6];
         let expected = [0u32, 3, 6, 0, 3, 3, 1, 0, 4, 0];
@@ -62,5 +68,10 @@ mod tests {
     #[test]
     fn test_solution_a() {
         assert_eq!(solution_a(), 620);
+    }
+
+    #[test]
+    fn test_solution_b() {
+        assert_eq!(solution_b(), 110871);
     }
 }
