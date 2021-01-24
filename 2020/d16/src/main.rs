@@ -8,7 +8,7 @@ fn content() -> Option<String> {
     read_to_string("./input.txt").ok()
 }
 
-fn solution(input: &str) -> (u16, u64) {
+fn read_instructions(input: &str) -> (Vec<(String, u16, u16, u16, u16)>, Vec<u16>, Vec<Vec<u16>>) {
     lazy_static! {
         static ref RE_RULE: Regex =
             Regex::new(r"^([a-z ]+):\s+(\d+)-(\d+) or (\d+)-(\d+)$").unwrap();
@@ -16,11 +16,9 @@ fn solution(input: &str) -> (u16, u64) {
     }
 
     let mut rules: Vec<(String, u16, u16, u16, u16)> = Vec::new();
-    let mut lookup = [0u32; 1024];
-    let mut results: Vec<u32> = Vec::new();
-    let mut ticket: Option<Vec<u16>> = None;
+    let mut others: Vec<Vec<u16>> = Vec::new();
+    let mut ticket: Vec<u16> = Vec::new();
     let mut state = 0;
-    let mut sol_a = 0u16;
 
     for raw in input.lines() {
         let line = raw.trim();
@@ -28,7 +26,6 @@ fn solution(input: &str) -> (u16, u64) {
             "" => (),
             "your ticket:" => {
                 state = 1;
-                results = vec![u32::MAX; rules.len()];
             }
             "nearby tickets:" => {
                 state = 2;
@@ -46,51 +43,72 @@ fn solution(input: &str) -> (u16, u64) {
                         .collect();
 
                     rules.push((String::from(name), n[0], n[1], n[2], n[3]));
-                    let j = 2u32.pow((rules.len() - 1) as u32);
-                    for i in n[0]..=n[1] {
-                        lookup[i as usize] |= j;
-                    }
-                    for i in n[2]..=n[3] {
-                        lookup[i as usize] |= j;
-                    }
                 } else if RE_TICKET.is_match(line) {
-                    let s: Vec<&str> = line.split(",").collect();
-                    let numbers: Vec<u16> = s.iter().map(|x| x.parse::<u16>().unwrap()).collect();
+                    let numbers: Vec<u16> =
+                        line.split(",").map(|x| x.parse::<u16>().unwrap()).collect();
                     if state == 1 {
-                        ticket = Some(numbers);
+                        ticket.extend_from_slice(&numbers);
                     } else {
-                        let choices: Vec<u32> =
-                            numbers.iter().map(|x| lookup[*x as usize]).collect();
-                        if choices.iter().find(|x| **x == 0) == None {
-                            for x in choices.iter().enumerate() {
-                                results[x.0] &= x.1;
-                            }
-                        } else {
-                            sol_a = numbers
-                                .iter()
-                                .filter(|x| lookup[**x as usize] == 0)
-                                .fold(sol_a, |acc, x| acc + x);
-                        }
+                        others.push(numbers);
                     }
                 }
             }
         }
     }
-    let my_ticket = ticket.unwrap();
-    results = clean_up(&results)
+
+    (rules, ticket, others)
+}
+
+fn solution(input: &str) -> (u16, u64) {
+    lazy_static! {
+        static ref RE_RULE: Regex =
+            Regex::new(r"^([a-z ]+):\s+(\d+)-(\d+) or (\d+)-(\d+)$").unwrap();
+        static ref RE_TICKET: Regex = Regex::new(r"^((\d+),)+(\d+)$").unwrap();
+    }
+
+    let (rules, ticket, others) = read_instructions(input);
+
+    let mut lookup = [0u32; 1024];
+    for rn in rules.iter().enumerate() {
+        let j = 2u32.pow(rn.0 as u32);
+        let n = rn.1;
+        for i in n.1..=n.2 {
+            lookup[i as usize] |= j;
+        }
+        for i in n.3..=n.4 {
+            lookup[i as usize] |= j;
+        }
+    }
+
+    let mut sol_a = 0u16;
+    let mut results = vec![u32::MAX; rules.len()];
+    for ticket in others.iter() {
+        let choices: Vec<u32> = ticket.iter().map(|x| lookup[*x as usize]).collect();
+        if choices.iter().find(|x| **x == 0) == None {
+            for x in choices.iter().enumerate() {
+                results[x.0] &= x.1;
+            }
+        } else {
+            sol_a = ticket
+                .iter()
+                .filter(|x| lookup[**x as usize] == 0)
+                .fold(sol_a, |acc, x| acc + x);
+        }
+    }
+
+    let sol_b = clean_up(&results)
         .iter()
         .map(|x| x.trailing_zeros())
-        .collect();
-
-    let sol_b = results.iter().enumerate().fold(1u64, |acc, x| {
-        if rules[*x.1 as usize].0.starts_with("departure") {
-            let h = my_ticket[x.0];
-            println!("{} -> {}", x.0, h);
-            acc * h as u64
-        } else {
-            acc
-        }
-    });
+        .enumerate()
+        .fold(1u64, |acc, x| {
+            if rules[x.1 as usize].0.starts_with("departure") {
+                let h = ticket[x.0];
+                println!("{} -> {}", x.0, h);
+                acc * h as u64
+            } else {
+                acc
+            }
+        });
 
     (sol_a, sol_b)
 }
