@@ -8,7 +8,7 @@ fn content() -> Option<String> {
     read_to_string("./input.txt").ok()
 }
 
-fn solution_a(input: &str) -> u16 {
+fn solution(input: &str) -> (u16, u64) {
     lazy_static! {
         static ref RE_RULE: Regex =
             Regex::new(r"^([a-z ]+):\s+(\d+)-(\d+) or (\d+)-(\d+)$").unwrap();
@@ -17,20 +17,21 @@ fn solution_a(input: &str) -> u16 {
 
     let mut rules: Vec<(String, u16, u16, u16, u16)> = Vec::new();
     let mut lookup = [0u32; 1024];
-    let mut others: Vec<Vec<u16>> = Vec::new();
-    let mut _ticket: Option<Vec<u16>> = None;
+    let mut results: Vec<u32> = Vec::new();
+    let mut ticket: Option<Vec<u16>> = None;
     let mut state = 0;
+    let mut sol_a = 0u16;
+
     for raw in input.lines() {
         let line = raw.trim();
         match line {
-            "" => continue,
+            "" => (),
             "your ticket:" => {
                 state = 1;
-                continue;
+                results = vec![u32::MAX; rules.len()];
             }
             "nearby tickets:" => {
                 state = 2;
-                continue;
             }
             _ => {
                 if state == 0 {
@@ -45,32 +46,82 @@ fn solution_a(input: &str) -> u16 {
                         .collect();
 
                     rules.push((String::from(name), n[0], n[1], n[2], n[3]));
-                    let j = 2u32.pow(rules.len() as u32);
+                    let j = 2u32.pow((rules.len() - 1) as u32);
                     for i in n[0]..=n[1] {
                         lookup[i as usize] |= j;
                     }
                     for i in n[2]..=n[3] {
                         lookup[i as usize] |= j;
                     }
-                    println!("Rule {} {}", j, line);
                 } else if RE_TICKET.is_match(line) {
                     let s: Vec<&str> = line.split(",").collect();
                     let numbers: Vec<u16> = s.iter().map(|x| x.parse::<u16>().unwrap()).collect();
                     if state == 1 {
-                        _ticket = Some(numbers);
+                        ticket = Some(numbers);
                     } else {
-                        others.push(numbers);
+                        let choices: Vec<u32> =
+                            numbers.iter().map(|x| lookup[*x as usize]).collect();
+                        if choices.iter().find(|x| **x == 0) == None {
+                            for x in choices.iter().enumerate() {
+                                results[x.0] &= x.1;
+                            }
+                        } else {
+                            sol_a = numbers
+                                .iter()
+                                .filter(|x| lookup[**x as usize] == 0)
+                                .fold(sol_a, |acc, x| acc + x);
+                        }
                     }
                 }
             }
         }
     }
+    let my_ticket = ticket.unwrap();
+    results = clean_up(&results)
+        .iter()
+        .map(|x| x.trailing_zeros())
+        .collect();
 
-    others.into_iter().flatten().filter(|x| lookup[*x as usize] == 0).sum()
+    let sol_b = results.iter().enumerate().fold(1u64, |acc, x| {
+        if rules[*x.1 as usize].0.starts_with("departure") {
+            let h = my_ticket[x.0];
+            println!("{} -> {}", x.0, h);
+            acc * h as u64
+        } else {
+            acc
+        }
+    });
+
+    (sol_a, sol_b)
 }
 
-fn solution_b(_input: &str) -> i32 {
-    0
+fn clean_up(results: &[u32]) -> Vec<u32> {
+    let mut current: Vec<u32> = Vec::new();
+    current.extend_from_slice(results);
+
+    let parts: (Vec<u32>, Vec<u32>) = results
+        .iter()
+        .map(|x| *x)
+        .partition(|x| x.count_ones() == 1);
+    if parts.1.len() == 0 {
+        current
+    } else {
+        for y in parts.0 {
+            current = current
+                .iter()
+                .map(|x| if *x == y { *x } else { *x & !y })
+                .collect();
+        }
+        clean_up(&current)
+    }
+}
+
+fn solution_a(input: &str) -> u16 {
+    solution(input).0
+}
+
+fn solution_b(input: &str) -> u64 {
+    solution(input).1
 }
 
 fn main() {
@@ -100,6 +151,13 @@ mod tests {
     }
 
     #[test]
+    fn test_solution_b() {
+        let input = content().unwrap();
+
+        assert_eq!(solution_b(&input), 2843534243843u64);
+    }
+
+    #[test]
     fn test_a() {
         let input = "class: 1-3 or 5-7
         row: 6-11 or 33-44
@@ -115,5 +173,22 @@ mod tests {
         38,6,12";
 
         assert_eq!(solution_a(&input), 71);
+    }
+
+    #[test]
+    fn test_b() {
+        let input = "class: 0-1 or 4-19
+        row: 0-5 or 8-19
+        seat: 0-13 or 16-19
+
+        your ticket:
+        11,12,13
+
+        nearby tickets:
+        3,9,18
+        15,1,5
+        5,14,9";
+
+        assert_eq!(solution_b(&input), 1);
     }
 }
