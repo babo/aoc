@@ -42,7 +42,7 @@ impl RulesWithSize {
         let mut raw: Vec<(usize, Rule)> = parts.0.iter().map(|&x| to_rule(x)).collect();
         raw.sort_by_key(|x| x.0);
         let max_index = raw.iter().map(|x| x.0).max().unwrap();
-        let mut ready = vec![Rule::A1(0); max_index + 1];
+        let mut ready = vec![Rule::Term('x'); max_index + 1];
         raw.iter().for_each(|x| ready[x.0] = x.1);
         RulesWithSize { rules: ready }
     }
@@ -59,9 +59,39 @@ impl RulesWithSize {
                 }
             }),
             Rule::A1(a1) => self.is_a_match(a1, input),
-            Rule::A2(a1, a2) => input
-                .and_then(|x| self.is_a_match(a1, Some(x)))
-                .and_then(|x| self.is_a_match(a2, Some(&x))),
+            Rule::A2(a1, a2) => match self.rules[a1] {
+                Rule::L3(_, _, _) => {
+                    input
+                        .and_then(|x| self.is_a_match(a1, Some(x)))
+                        .and_then(|x| {
+                            let line = String::from(input.unwrap());
+                            let mut n = line.len() - x.len();
+
+                            loop {
+                                match self.is_a_match(a1, line.get(0..n)).and_then(|rest| {
+                                    let l = n - rest.len();
+                                    self.is_a_match(a2, line.get(l..))
+                                }) {
+                                    Some(rest) => {
+                                        if rest.is_empty() {
+                                            return Some(rest);
+                                        }
+                                    }
+                                    None => (),
+                                };
+
+                                if n > 2 {
+                                    n -= 1;
+                                } else {
+                                    break None;
+                                }
+                            }
+                        })
+                }
+                _ => input
+                    .and_then(|x| self.is_a_match(a1, Some(x)))
+                    .and_then(|x| self.is_a_match(a2, Some(&x))),
+            },
             Rule::A3(a1, a2, a3) => input
                 .and_then(|x| self.is_a_match(a1, Some(x)))
                 .and_then(|x| self.is_a_match(a2, Some(&x)))
@@ -89,15 +119,36 @@ impl RulesWithSize {
                         None => break,
                     }
                 }
-                Some(w)
+                if w.len() == input.len() {
+                    None
+                } else {
+                    Some(w)
+                }
             }),
-            Rule::L5(a1, a2, a3, a4, a5) => input.and_then(|input| {
+            Rule::L5(a1, _a2, _a3, _a4, a5) => input.and_then(|input| {
                 let mut w = String::from(input);
+                let mut n = 0;
 
                 loop {
                     match self.is_a_match(a1, Some(&w)) {
-                        Some(data) => w = data,
+                        Some(data) => {
+                            n += 1;
+                            w = data;
+                        }
                         None => break,
+                    }
+                }
+                if n == 0 {
+                    return None;
+                }
+                for _ in 0..n {
+                    match self.is_a_match(a5, Some(&w)) {
+                        Some(data) => {
+                            w = data;
+                        }
+                        None => {
+                            return None;
+                        }
                     }
                 }
                 Some(w)
@@ -170,8 +221,24 @@ fn solution_a(input: &str) -> usize {
         .count()
 }
 
-fn solution_b(_input: &str) -> usize {
-    0
+fn solution_b(input: &str) -> usize {
+    let parts = partition_input(input);
+    let mut rules = RulesWithSize::from_str(input);
+    rules.rules[8] = Rule::L3(42, 42, 8);
+    rules.rules[11] = Rule::L5(42, 31, 42, 11, 31);
+
+    parts
+        .1
+        .iter()
+        .filter(|x| !x.is_empty())
+        .filter(|x| {
+            rules
+                .is_a_match(0, Some(x))
+                .and_then(|x| Some(x.is_empty()))
+                .or(Some(false))
+                .unwrap()
+        })
+        .count()
 }
 
 fn main() {
@@ -181,7 +248,7 @@ fn main() {
     let b = solution_b(&c);
 
     println!("Step A: {:?}", a);
-    println!("Step B: {}", b);
+    println!("Step B: {:?}", b);
 }
 
 #[cfg(test)]
@@ -233,6 +300,11 @@ mod tests {
     #[test]
     fn test_solution_a() {
         assert_eq!(solution_a(&content().unwrap()), 113);
+    }
+
+    #[test]
+    fn test_solution_b() {
+        assert_eq!(solution_b(&content().unwrap()), 253);
     }
 
     #[test]
@@ -288,5 +360,47 @@ mod tests {
         "#;
 
         assert_eq!(solution_a(input), 3);
+        assert_eq!(solution_b(input), 12);
+    }
+
+    #[test]
+    fn test_simple_ruleset() {
+        let input = r#"
+            0: 8 11
+            1: "a"
+            10: 23 14 | 28 1
+            11: 42 31 | 42 11 31
+            12: 24 14 | 19 1
+            13: 14 3 | 1 12
+            14: "b"
+            15: 1 | 14
+            16: 15 1 | 14 14
+            17: 14 2 | 1 7
+            18: 15 15
+            19: 14 1 | 14 14
+            2: 1 24 | 14 4
+            20: 14 14 | 1 15
+            21: 14 1 | 1 14
+            22: 14 14
+            23: 25 1 | 22 14
+            24: 14 1
+            25: 1 1 | 1 14
+            26: 14 22 | 1 20
+            27: 1 6 | 14 18
+            28: 16 1
+            3: 5 14 | 16 1
+            31: 14 17 | 1 13
+            4: 1 1
+            42: 9 14 | 10 1
+            5: 1 14 | 15 1
+            6: 14 14 | 1 14
+            7: 14 5 | 1 21
+            8: 42 | 42 8
+            9: 14 27 | 1 26
+
+            ababaaaaaabaaab
+        "#;
+
+        assert_eq!(solution_a(input), 1);
     }
 }

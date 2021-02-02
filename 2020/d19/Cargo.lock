@@ -20,9 +20,9 @@ dependencies = [
 
 [[package]]
 name = "ctor"
-version = "0.1.18"
+version = "0.1.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "10bcb9d7dcbf7002aaffbb53eac22906b64cdcc127971dcc387d8eb7c95d5560"
+checksum = "e8f45d9ad417bcef4817d614a501ab55cdd96a6fdb24f49aab89a54acfd66b19"
 dependencies = [
  "quote",
  "syn",
@@ -34,7 +34,6 @@ version = "0.1.0"
 dependencies = [
  "lazy_static",
  "pretty_assertions",
- "recur-fn",
  "regex",
 ]
 
@@ -100,12 +99,6 @@ checksum = "991431c3519a3f36861882da93630ce66b52918dcf1b8e2fd66b397fc96f28df"
 dependencies = [
  "proc-macro2",
 ]
-
-[[package]]
-name = "recur-fn"
-version = "2.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ddb239d0574f3f7a7f44da906a0484f1fc284f89cfbc4eca1895420dbf948201"
 
 [[package]]
 name = "regex"

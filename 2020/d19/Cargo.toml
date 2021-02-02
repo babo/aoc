@@ -9,7 +9,6 @@ edition = "2018"
 [dependencies]
 regex = "1"
 lazy_static = "1.4.0"
-recur-fn = "2.2.0"
 
 [dev-dependencies]
 pretty_assertions = "0.6.1"
