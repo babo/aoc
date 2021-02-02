@@ -28,11 +28,12 @@ enum Rule {
     A4(usize, usize, usize, usize),
     O2(usize, usize),
     O4(usize, usize, usize, usize),
+    L3(usize, usize, usize),
+    L5(usize, usize, usize, usize, usize),
 }
 
 struct RulesWithSize {
     rules: Vec<Rule>,
-    width: Vec<usize>,
 }
 
 impl RulesWithSize {
@@ -40,147 +41,67 @@ impl RulesWithSize {
         let parts = partition_input(input);
         let mut raw: Vec<(usize, Rule)> = parts.0.iter().map(|&x| to_rule(x)).collect();
         raw.sort_by_key(|x| x.0);
-        let sorted: Vec<Rule> = raw.iter().map(|x| x.1).collect();
-        Self::new(&sorted)
+        let max_index = raw.iter().map(|x| x.0).max().unwrap();
+        let mut ready = vec![Rule::A1(0); max_index + 1];
+        raw.iter().for_each(|x| ready[x.0] = x.1);
+        RulesWithSize { rules: ready }
     }
 
-    pub fn new(data: &[Rule]) -> Self {
-        let mut width = Self::cs2(0, data);
-        width.sort_by_key(|x| x.0);
-        width.dedup();
-        RulesWithSize {
-            rules: data.to_vec(),
-            width: width.iter().map(|x| x.1).collect(),
-        }
-    }
-
-    fn cs2(pos: usize, rules: &[Rule]) -> Vec<(usize, usize)> {
-        let mut rtv = Vec::new();
-        let w = match rules[pos] {
-            Rule::Term(_) => 1,
-            Rule::A1(a1) => {
-                let w1 = Self::cs2(a1, rules);
-                let w = w1.last().unwrap().1;
-                rtv.extend(w1);
-
-                w
-            }
-            Rule::A2(a1, a2) => {
-                let w1 = Self::cs2(a1, rules);
-                let w2 = Self::cs2(a2, rules);
-
-                let w = w1.last().unwrap().1 + w2.last().unwrap().1;
-                rtv.extend(w1);
-                rtv.extend(w2);
-                w
-            }
-            Rule::A3(a1, a2, a3) => {
-                let w1 = Self::cs2(a1, rules);
-                let w2 = Self::cs2(a2, rules);
-                let w3 = Self::cs2(a3, rules);
-
-                let w = w1.last().unwrap().1 + w2.last().unwrap().1 + w3.last().unwrap().1;
-                rtv.extend(w1);
-                rtv.extend(w2);
-                rtv.extend(w3);
-                w
-            }
-            Rule::A4(a1, a2, a3, a4) => {
-                let w1 = Self::cs2(a1, rules);
-                let w2 = Self::cs2(a2, rules);
-                let w3 = Self::cs2(a3, rules);
-                let w4 = Self::cs2(a4, rules);
-
-                let w = w1.last().unwrap().1
-                    + w2.last().unwrap().1
-                    + w3.last().unwrap().1
-                    + w4.last().unwrap().1;
-                rtv.extend(w1);
-                rtv.extend(w2);
-                rtv.extend(w3);
-                rtv.extend(w4);
-                w
-            }
-            Rule::O2(a1, a2) => {
-                let w1 = Self::cs2(a1, rules);
-                let w2 = Self::cs2(a2, rules);
-
-                let l = w1.last().unwrap().1;
-                let r = w2.last().unwrap().1;
-                if l != r {
-                    panic!("Expected to be equal: {} {}", l, r);
-                }
-                rtv.extend(w1);
-                rtv.extend(w2);
-                l
-            }
-            Rule::O4(a1, a2, a3, a4) => {
-                let w1 = Self::cs2(a1, rules);
-                let w2 = Self::cs2(a2, rules);
-                let w3 = Self::cs2(a3, rules);
-                let w4 = Self::cs2(a4, rules);
-                let l = w1.last().unwrap().1 + w2.last().unwrap().1;
-                let r = w3.last().unwrap().1 + w4.last().unwrap().1;
-
-                if l != r {
-                    panic!("Expected to be equal: {} {}", l, r);
-                }
-                rtv.extend(w1);
-                rtv.extend(w2);
-                rtv.extend(w3);
-                rtv.extend(w4);
-                l
-            }
-        };
-        rtv.push((pos, w));
-        rtv
-    }
-
-    pub fn is_a_match(&self, pos: usize, input: &str) -> bool {
+    pub fn is_a_match(&self, pos: usize, input: Option<&str>) -> Option<String> {
         match self.rules[pos] {
-            Rule::Term(c) => input == String::from(c),
+            Rule::Term(c) => input.and_then(|x| x.get(..1)).and_then(|h| {
+                if h == String::from(c) {
+                    input
+                        .and_then(|x| x.get(1..))
+                        .and_then(|x| Some(String::from(x)))
+                } else {
+                    None
+                }
+            }),
             Rule::A1(a1) => self.is_a_match(a1, input),
-            Rule::A2(a1, a2) => {
-                let w1 = self.width[a1];
-                let w2 = self.width[a2];
-                input.len() == w1 + w2
-                    && self.is_a_match(a1, input.get(..w1).unwrap())
-                    && self.is_a_match(a2, input.get(w1..w1 + w2).unwrap())
-            }
-            Rule::A3(a1, a2, a3) => {
-                let w1 = self.width[a1];
-                let w2 = self.width[a2];
-                let w3 = self.width[a3];
+            Rule::A2(a1, a2) => input
+                .and_then(|x| self.is_a_match(a1, Some(x)))
+                .and_then(|x| self.is_a_match(a2, Some(&x))),
+            Rule::A3(a1, a2, a3) => input
+                .and_then(|x| self.is_a_match(a1, Some(x)))
+                .and_then(|x| self.is_a_match(a2, Some(&x)))
+                .and_then(|x| self.is_a_match(a3, Some(&x))),
+            Rule::A4(a1, a2, a3, a4) => input
+                .and_then(|x| self.is_a_match(a1, Some(x)))
+                .and_then(|x| self.is_a_match(a2, Some(&x)))
+                .and_then(|x| self.is_a_match(a3, Some(&x)))
+                .and_then(|x| self.is_a_match(a4, Some(&x))),
+            Rule::O2(a1, a2) => input
+                .and(self.is_a_match(a1, input))
+                .or(input.and(self.is_a_match(a2, input))),
+            Rule::O4(a1, a2, a3, a4) => input
+                .and(self.is_a_match(a1, input))
+                .and_then(|x| self.is_a_match(a2, Some(&x)))
+                .or(input
+                    .and(self.is_a_match(a3, input))
+                    .and_then(|x| self.is_a_match(a4, Some(&x)))),
+            Rule::L3(a1, _a2, _a3) => input.and_then(|input| {
+                let mut w = String::from(input);
 
-                input.len() == w1 + w2 + w3
-                    && self.is_a_match(a1, input.get(..w1).unwrap())
-                    && self.is_a_match(a2, input.get(w1..w1 + w2).unwrap())
-                    && self.is_a_match(a3, input.get(w1 + w2..w1 + w2 + w3).unwrap())
-            }
-            Rule::A4(a1, a2, a3, a4) => {
-                let w1 = self.width[a1];
-                let w2 = self.width[a2];
-                let w3 = self.width[a3];
-                let w4 = self.width[a4];
-                input.len() == w1 + w2 + w3 + w4
-                    && self.is_a_match(a1, input.get(..w1).unwrap())
-                    && self.is_a_match(a2, input.get(w1..w1 + w2).unwrap())
-                    && self.is_a_match(a2, input.get(w1 + w2..w1 + w2 + w3).unwrap())
-                    && self.is_a_match(a2, input.get(w1 + w2 + w3..w1 + w2 + w3 + w4).unwrap())
-            }
-            Rule::O2(a1, a2) => {
-                let w1 = self.width[a1];
-                input.len() == w1 && (self.is_a_match(a1, input) || self.is_a_match(a2, input))
-            }
-            Rule::O4(a1, a2, a3, a4) => {
-                let w1 = self.width[a1];
-                let w2 = self.width[a2];
-                input.len() == w1 + w2
-                    && ((self.is_a_match(a1, input.get(..w1).unwrap())
-                        && self.is_a_match(a2, input.get(w1..w1 + w2).unwrap()))
-                        || (self.is_a_match(a3, input.get(..w1).unwrap())
-                            && self.is_a_match(a4, input.get(w1..w1 + w2).unwrap())))
-            }
+                loop {
+                    match self.is_a_match(a1, Some(&w)) {
+                        Some(data) => w = data,
+                        None => break,
+                    }
+                }
+                Some(w)
+            }),
+            Rule::L5(a1, a2, a3, a4, a5) => input.and_then(|input| {
+                let mut w = String::from(input);
+
+                loop {
+                    match self.is_a_match(a1, Some(&w)) {
+                        Some(data) => w = data,
+                        None => break,
+                    }
+                }
+                Some(w)
+            }),
         }
     }
 }
@@ -213,13 +134,13 @@ fn to_rule(input: &str) -> (usize, Rule) {
             .map(|x| x.parse::<usize>().unwrap())
             .collect();
         match which.first() {
-            Some(1) => {
-                if n.len() == 4 {
-                    (id, Rule::O4(n[0], n[1], n[2], n[3]))
-                } else {
-                    (id, Rule::O2(n[0], n[1]))
-                }
-            }
+            Some(1) => match n.len() {
+                5 => (id, Rule::L5(n[0], n[1], n[2], n[3], n[4])),
+                4 => (id, Rule::O4(n[0], n[1], n[2], n[3])),
+                3 => (id, Rule::L3(n[0], n[1], n[2])),
+                2 => (id, Rule::O2(n[0], n[1])),
+                _ => panic!("Invalid args"),
+            },
             Some(2) => match n.len() {
                 1 => (id, Rule::A1(n[0])),
                 2 => (id, Rule::A2(n[0], n[1])),
@@ -236,10 +157,20 @@ fn solution_a(input: &str) -> usize {
     let parts = partition_input(input);
     let rules = RulesWithSize::from_str(input);
 
-    parts.1.iter().filter(|x| rules.is_a_match(0, x)).count()
+    parts
+        .1
+        .iter()
+        .filter(|x| {
+            rules
+                .is_a_match(0, Some(x))
+                .and_then(|x| Some(x.is_empty()))
+                .or(Some(false))
+                .unwrap()
+        })
+        .count()
 }
 
-fn solution_b(_input: &str) -> u64 {
+fn solution_b(_input: &str) -> usize {
     0
 }
 
@@ -278,28 +209,6 @@ mod tests {
     }
 
     #[test]
-    fn test_width() {
-        let input = r#"
-        0: 4 1 5
-        1: 2 3 | 3 2
-        2: 4 4 | 5 5
-        3: 4 5 | 5 4
-        4: "a"
-        5: "b"
-
-        aaaabb
-        aaabab
-        abbabb
-        abbbab
-        aabaab
-        aabbbb
-        abaaab
-        ababbb"#;
-        let rules = RulesWithSize::from_str(input);
-        assert_eq!(rules.width[0], 6);
-    }
-
-    #[test]
     fn test_sample_a() {
         let input = r#"
         0: 4 1 5
@@ -324,5 +233,60 @@ mod tests {
     #[test]
     fn test_solution_a() {
         assert_eq!(solution_a(&content().unwrap()), 113);
+    }
+
+    #[test]
+    fn test_changed_ruleset() {
+        let input = r#"
+            42: 9 14 | 10 1
+            9: 14 27 | 1 26
+            10: 23 14 | 28 1
+            1: "a"
+            11: 42 31
+            5: 1 14 | 15 1
+            19: 14 1 | 14 14
+            12: 24 14 | 19 1
+            16: 15 1 | 14 14
+            31: 14 17 | 1 13
+            6: 14 14 | 1 14
+            2: 1 24 | 14 4
+            0: 8 11
+            13: 14 3 | 1 12
+            15: 1 | 14
+            17: 14 2 | 1 7
+            23: 25 1 | 22 14
+            28: 16 1
+            4: 1 1
+            20: 14 14 | 1 15
+            3: 5 14 | 16 1
+            27: 1 6 | 14 18
+            14: "b"
+            21: 14 1 | 1 14
+            25: 1 1 | 1 14
+            22: 14 14
+            8: 42
+            26: 14 22 | 1 20
+            18: 15 15
+            7: 14 5 | 1 21
+            24: 14 1
+
+            abbbbbabbbaaaababbaabbbbabababbbabbbbbbabaaaa
+            bbabbbbaabaabba
+            babbbbaabbbbbabbbbbbaabaaabaaa
+            aaabbbbbbaaaabaababaabababbabaaabbababababaaa
+            bbbbbbbaaaabbbbaaabbabaaa
+            bbbababbbbaaaaaaaabbababaaababaabab
+            ababaaaaaabaaab
+            ababaaaaabbbaba
+            baabbaaaabbaaaababbaababb
+            abbbbabbbbaaaababbbbbbaaaababb
+            aaaaabbaabaaaaababaa
+            aaaabbaaaabbaaa
+            aaaabbaabbaaaaaaabbbabbbaaabbaabaaa
+            babaaabbbaaabaababbaabababaaab
+            aabbbbbaabbbaaaaaabbbbbababaaaaabbaaabba
+        "#;
+
+        assert_eq!(solution_a(input), 3);
     }
 }
