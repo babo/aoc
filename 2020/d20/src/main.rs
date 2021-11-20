@@ -92,7 +92,7 @@ impl Tile {
                     .map(|x| match x {
                         '.' => '0',
                         '#' => '1',
-                        _ => panic!("Unknow input {}", line),
+                        _ => panic!("Unknown input {}", line),
                     })
                     .collect();
                 u16::from_str_radix(&bin, 2).unwrap()
@@ -251,6 +251,7 @@ impl GTable {
         })
     }
 
+    #[allow(dead_code)]
     pub fn debug(&self) {
         for x in self.grid.iter().enumerate() {
             let t = x.1.and_then(|x| self.tiles.get(x.0)).unwrap();
@@ -284,7 +285,7 @@ fn partition_input(input: &str) -> Vec<Tile> {
     rtv
 }
 
-fn solution_a(input: &str) -> Option<usize> {
+fn solution_a(input: &str) -> Option<GTable> {
     let mut gt = GTable::new(input);
     let mut history: Vec<usize> = Vec::new();
     let mut todo: VecDeque<usize> = VecDeque::new();
@@ -335,23 +336,34 @@ fn solution_a(input: &str) -> Option<usize> {
                 todo.push_front(gi);
 
                 if history.len() == 0 {
-                    println!("{} {} {}", w.0, w.1, gi);
-                }
-                if w.1 + 1 < 20 {
-                    skip = w.0;
-                    ms = w.1 + 1;
-                    break;
-                } else if w.0 + 1 < total {
-                    skip = w.0 + 1;
-                    ms = 0;
-                    break;
+                    // println!("{} {}", w.0, w.1);
+
+                    if w.1 + 4 < 16 {
+                        skip = w.0;
+                        ms = w.1 + 4;
+                        break;
+                    } else if w.0 + 1 < total {
+                        skip = w.0 + 1;
+                        ms = 0;
+                        break;
+                    }
+                } else {
+                    if w.1 + 1 < 32 {
+                        skip = w.0;
+                        ms = w.1 + 1;
+                        break;
+                    } else if w.0 + 1 < total {
+                        skip = w.0 + 1;
+                        ms = 0;
+                        break;
+                    }
                 }
             },
         }
     }
 
-    gt.debug();
-    gt.checksum()
+    // gt.debug();
+    Some(gt)
 }
 
 fn solution_b(_input: &str) -> Option<usize> {
@@ -364,7 +376,7 @@ fn main() {
     let a = solution_a(&c);
     let b = solution_b(&c);
 
-    println!("Step A: {:?}", a);
+    println!("Step A: {:?}", a.unwrap().checksum());
     println!("Step B: {:?}", b);
 }
 
@@ -378,6 +390,10 @@ mod tests {
 
     fn solution() -> String {
         read_to_string("./simple-solution.txt").ok().unwrap()
+    }
+
+    fn table_sum(x: Option<GTable>) -> Option<usize> {
+        x.and_then(|x: GTable| -> Option<usize> { x.checksum() })
     }
 
     #[test]
@@ -404,12 +420,15 @@ mod tests {
 
     #[test]
     fn test_simple_a() {
-        assert_eq!(solution_a(&simple()), Some(20899048083289));
+        assert_eq!(table_sum(solution_a(&simple())), Some(20899048083289));
     }
 
     #[test]
     fn test_solution_a() {
-        assert_eq!(solution_a(&content().unwrap()), Some(13224049461431));
+        assert_eq!(
+            table_sum(solution_a(&content().unwrap())),
+            Some(13224049461431)
+        );
     }
 
     #[test]
@@ -594,6 +613,9 @@ mod tests {
 
     #[test]
     fn test_monster() {
-        assert_eq!(0, 273)
+        let _pattern = "                  #
+        #    ##    ##    ###
+         #  #  #  #  #  #   ";
+        assert_eq!(0, 273);
     }
 }
