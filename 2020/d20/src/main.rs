@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::fmt;
 use std::fs::read_to_string;
+use std::convert::TryInto;
 
 fn content() -> Option<String> {
     read_to_string("./input.txt").ok()
@@ -41,6 +42,7 @@ impl Side {
 struct Tile {
     id: u32,
     border: [u16; 4],
+    content: [u16; 8]
 }
 
 impl fmt::Display for Tile {
@@ -48,6 +50,8 @@ impl fmt::Display for Tile {
         write!(f, "{}", self.id)
     }
 }
+
+const TILE_MASK: u16 = 1u16 << 10 - 1;
 
 impl Tile {
     pub fn new(id: u32, lines: &[u16; 10]) -> Self {
@@ -61,7 +65,8 @@ impl Tile {
             .fold(0u16, |acc, x| (acc << 1) | x);
 
         let border: [u16; 4] = [lines[0], r, lines[9], l];
-        Tile { id, border }
+        let content: [u16; 8] = lines.iter().skip(1).take(8).map(|x| (x & TILE_MASK) >> 1u16).collect::<Vec<u16>>().try_into().unwrap();
+        Tile { id, border, content }
     }
 
     pub fn from_str(input: &str) -> Self {
@@ -578,7 +583,8 @@ mod tests {
     impl Tile {
         pub fn test(id: u32, border: &[u16; 4]) -> Self {
             let border = *border;
-            Tile { id, border }
+            let content: [u16; 8] = [0u16; 8];
+            Tile { id, border, content }
         }
     }
 
