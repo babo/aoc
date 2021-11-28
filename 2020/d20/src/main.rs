@@ -42,7 +42,7 @@ impl Side {
 struct Tile {
     id: u32,
     border: [u16; 4],
-    content: [u16; 8]
+    content: [u8; 8]
 }
 
 impl fmt::Display for Tile {
@@ -51,7 +51,7 @@ impl fmt::Display for Tile {
     }
 }
 
-const TILE_MASK: u16 = 1u16 << 10 - 1;
+const TILE_MASK: u16 = (1u16 << 10) - 1;
 
 impl Tile {
     pub fn new(id: u32, lines: &[u16; 10]) -> Self {
@@ -65,7 +65,7 @@ impl Tile {
             .fold(0u16, |acc, x| (acc << 1) | x);
 
         let border: [u16; 4] = [lines[0], r, lines[9], l];
-        let content: [u16; 8] = lines.iter().skip(1).take(8).map(|x| (x & TILE_MASK) >> 1u16).collect::<Vec<u16>>().try_into().unwrap();
+        let content: [u8; 8] = lines.iter().skip(1).take(8).map(|x| u16::to_be_bytes((x & TILE_MASK) >> 1u16)[1]).collect::<Vec<u8>>().try_into().unwrap();
         Tile { id, border, content }
     }
 
@@ -583,9 +583,21 @@ mod tests {
     impl Tile {
         pub fn test(id: u32, border: &[u16; 4]) -> Self {
             let border = *border;
-            let content: [u16; 8] = [0u16; 8];
+            let content: [u8; 8] = [0u8; 8];
             Tile { id, border, content }
         }
+    }
+
+    #[test]
+    fn test_tile_content() {
+        let input: [u16; 10] = [0u16, 2, 4, 256, 511, 512, 255, 127, 63, 0];
+        let tile = Tile::new(0u32, &input);
+        println!("t {} {} {} {} {} {} {} {}", tile.content[0], tile.content[1], tile.content[2], tile.content[3], tile.content[4], tile.content[5], tile.content[6], tile.content[7]);
+        assert!(tile.content[0] == 1u8);
+        assert!(tile.content[1] == 2u8);
+        assert!(tile.content[2] == 128u8);
+        assert!(tile.content[3] == 255u8);
+        assert!(tile.content[4] == 0u8);
     }
 
     #[test]
