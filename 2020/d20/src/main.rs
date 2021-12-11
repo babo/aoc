@@ -135,6 +135,16 @@ impl Tile {
             v
         }
     }
+
+    pub fn preview(&self, mode: u8) -> &[u8; 8] {
+        let flp = mode & 12u8;
+        let rot = mode & 3u8;
+        let ccw = mode & 16u8 == 16u8;
+        for line in self.content.iter() {
+            println!("{:08b}", line);
+        }
+        &self.content
+    }
 }
 
 struct GTable {
@@ -598,6 +608,15 @@ mod tests {
         assert!(tile.content[2] == 128u8);
         assert!(tile.content[3] == 255u8);
         assert!(tile.content[4] == 0u8);
+    }
+
+    #[test]
+    fn test_tile_output() {
+        let input: [u16; 10] = [0u16, 2, 4, 256, 511, 512, 255, 127, 63, 0];
+        let tile = Tile::new(0u32, &input);
+
+        tile.preview(0);
+        assert!(1 == 0);
     }
 
     #[test]
