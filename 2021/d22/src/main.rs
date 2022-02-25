@@ -4,14 +4,15 @@ fn content() -> Option<String> {
     read_to_string("./input.txt").ok()
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
 struct Cuboid {
     on_off: bool,
-    x1: i32,
-    x2: i32,
-    y1: i32,
-    y2: i32,
-    z1: i32,
-    z2: i32,
+    x1: i64,
+    x2: i64,
+    y1: i64,
+    y2: i64,
+    z1: i64,
+    z2: i64,
 }
 
 impl Cuboid {
@@ -22,14 +23,14 @@ impl Cuboid {
             Some("off") => false,
             _ => unreachable!("Should start with on or off"),
         };
-        let coordinates: Vec<i32> = line
+        let coordinates: Vec<i64> = line
             .chars()
             .fold((Vec::new(), String::new()), |mut acc, c| {
                 if char::is_numeric(c) || (c == '-' && acc.1.is_empty()) {
                     acc.1.push(c);
                     acc
                 } else if !acc.1.is_empty() {
-                    let n = i32::from_str_radix(acc.1.as_str(), 10).unwrap();
+                    let n = i64::from_str_radix(acc.1.as_str(), 10).unwrap();
                     acc.0.push(n);
                     (acc.0, String::new())
                 } else {
@@ -59,7 +60,7 @@ impl Cuboid {
     }
 
     fn cubes(&self) -> usize {
-        ((self.x2 - self.x1) * (self.y2 - self.y1) * (self.z2 - self.z1)) as usize
+        ((1 + self.x2 - self.x1) * (1 + self.y2 - self.y1) * (1 + self.z2 - self.z1)) as usize
     }
 
     fn union(&self, other: &Self) -> Option<Self> {
@@ -70,7 +71,7 @@ impl Cuboid {
         let z1 = self.z1.max(other.z1);
         let z2 = self.z2.min(other.z2);
 
-        if x1 >= x2 || y1 >= y2 || z1 >= z2 {
+        if x1 > x2 || y1 > y2 || z1 > z2 {
             None
         } else {
             Some(Cuboid {
@@ -97,12 +98,36 @@ fn read_input(input: &str, full_size: bool) -> Vec<Cuboid> {
 }
 
 fn solution_a(input: &str) -> Option<usize> {
-    read_input(input, false);
+    let cuboids = read_input(input, false);
+
+    for i in 0..cuboids.len() {
+        for j in 0..i {
+            match cuboids[j].union(&cuboids[i]) {
+                Some(over) => println!("U {} {} => {}", i, j, over.cubes()),
+                None => println!("{} - {}", i, j),
+            }
+        }
+        println!("----");
+    }
+
+    println!("{:?}", cuboids[0].cubes());
     None
 }
 
 fn solution_b(input: &str) -> Option<usize> {
-    read_input(input, true);
+    let cuboids = read_input(input, true);
+    let mm = cuboids.iter().fold((0, 0, 0, 0, 0, 0), |acc, c| {
+        (
+            acc.0.min(c.x1),
+            acc.1.max(c.x1),
+            acc.2.min(c.y1),
+            acc.3.max(c.y1),
+            acc.4.min(c.z1),
+            acc.5.max(c.z1),
+        )
+    });
+    println!("count: {}", cuboids.len());
+    println!("{} {} {} {} {} {}", mm.0, mm.1, mm.2, mm.3, mm.4, mm.5);
     None
 }
 
