@@ -6,7 +6,7 @@ fn content() -> Option<String> {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct Cuboid {
-    on_off: bool,
+    is_on: bool,
     x1: i64,
     x2: i64,
     y1: i64,
@@ -18,7 +18,7 @@ struct Cuboid {
 impl Cuboid {
     fn new(line: &str) -> Self {
         let line = String::from(line) + " ";
-        let on_off = match line.get(0..3) {
+        let is_on = match line.get(0..3) {
             Some("on ") => true,
             Some("off") => false,
             _ => unreachable!("Should start with on or off"),
@@ -40,7 +40,7 @@ impl Cuboid {
             .0;
 
         Cuboid {
-            on_off,
+            is_on,
             x1: *coordinates.get(0).unwrap(),
             x2: *coordinates.get(1).unwrap(),
             y1: *coordinates.get(2).unwrap(),
@@ -59,8 +59,8 @@ impl Cuboid {
             && self.z2 < 50
     }
 
-    fn cubes(&self) -> usize {
-        ((1 + self.x2 - self.x1) * (1 + self.y2 - self.y1) * (1 + self.z2 - self.z1)) as usize
+    fn volume(&self) -> usize {
+        ((self.x2 - self.x1) * (self.y2 - self.y1) * (self.z2 - self.z1)) as usize
     }
 
     fn union(&self, other: &Self) -> Option<Self> {
@@ -75,7 +75,7 @@ impl Cuboid {
             None
         } else {
             Some(Cuboid {
-                on_off: true,
+                is_on: self.is_on,
                 x1,
                 x2,
                 y1,
@@ -97,21 +97,59 @@ fn read_input(input: &str, full_size: bool) -> Vec<Cuboid> {
         .collect::<Vec<Cuboid>>()
 }
 
+fn count_on(cuboids: &Vec<Cuboid>, prev: usize, is_add: bool) -> usize {
+    println!(
+        "count_on: {} add: {} len: {}",
+        prev,
+        is_add,
+        cuboids.len()
+    );
+    if cuboids.is_empty() {
+        return prev;
+    }
+
+    let mut current = 0;
+    let mut minus = 0usize;
+    let mut round: Vec<Cuboid> = Vec::new();
+    for i in 0..cuboids.len() {
+        match cuboids.get(i).map(|x| if x.is_on { x.volume() } else { 0 }) {
+            Some(v) => {
+                println!("index: {} volume: {}", i, v);
+                current += v
+            }
+            None => unreachable!("All keys must be valid"),
+        }
+        for j in 0..i {
+            match cuboids[i].union(&cuboids[j]) {
+                Some(union) => {
+                    let v = union.volume();
+                    println!("union: ({}, {}) volume {}", j, i, v);
+
+                    if union.is_on {
+                        round.push(union);
+                    } else {
+                        minus += v;
+                    }
+                }
+                None => (),
+            }
+        }
+    }
+    if is_add {
+        println!("");
+        count_on(&round, prev + current - minus, !is_add)
+    } else {
+        let rtv = prev + minus - current;
+        println!("{}+{}-{} = {}", prev, minus, current, rtv);
+        prev + minus - current
+    }
+}
+
 fn solution_a(input: &str) -> Option<usize> {
     let cuboids = read_input(input, false);
 
-    for i in 0..cuboids.len() {
-        for j in 0..i {
-            match cuboids[j].union(&cuboids[i]) {
-                Some(over) => println!("U {} {} => {}", i, j, over.cubes()),
-                None => println!("{} - {}", i, j),
-            }
-        }
-        println!("----");
-    }
-
-    println!("{:?}", cuboids[0].cubes());
-    None
+    let c = count_on(&cuboids, 0, true);
+    Some(c)
 }
 
 fn solution_b(input: &str) -> Option<usize> {
@@ -152,6 +190,42 @@ mod tests {
     #[test]
     fn test_file_reading() {
         assert_ne!(content().is_none(), true);
+    }
+
+    #[test]
+    fn test_overlap() {
+        let data = "on x=10..12,y=10..12,z=10..12
+        on x=10..12,y=10..12,z=10..12
+        on x=10..12,y=10..12,z=10..12
+        on x=10..12,y=10..12,z=10..12";
+        assert_eq!(solution_a(&data), Some(27));
+    }
+
+    #[test]
+    fn test_2d_1() {
+        let data = "on x=0..5,y=1..4,z=0..1
+        on x=1..4,y=0..5,z=0..1
+        on x=2..3,y=2..3,z=0..1
+        ";
+        assert_eq!(solution_a(&data), Some(21));
+    }
+
+    #[test]
+    fn test_2d_2() {
+        let data = "on x=0..5,y=1..4,z=0..1
+        on x=2..3,y=2..3,z=0..1
+        on x=2..3,y=2..3,z=0..1
+        ";
+        assert_eq!(solution_a(&data), Some(15));
+    }
+
+    #[test]
+    fn test_2d_3() {
+        let data = "on x=0..5,y=0..5,z=0..1
+        on x=0..5,y=0..5,z=0..1
+        on x=0..5,y=0..5,z=0..1
+        ";
+        assert_eq!(solution_a(&data), Some(25));
     }
 
     #[test]
