@@ -3,29 +3,38 @@ use std::fs::read_to_string;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 enum Amphipod {
-    A(u16),
-    B(u16),
-    C(u16),
-    D(u16),
+    A,
+    B,
+    C,
+    D,
 }
 
 impl Amphipod {
     pub fn new(kind: char) -> Self {
         match kind {
-            'A' => Amphipod::A(0),
-            'B' => Amphipod::B(0),
-            'C' => Amphipod::C(0),
-            'D' => Amphipod::D(0),
+            'A' => Amphipod::A,
+            'B' => Amphipod::B,
+            'C' => Amphipod::C,
+            'D' => Amphipod::D,
             _ => unreachable!("never"),
         }
     }
 
-    pub fn step(&self, n: u16) -> Self {
+    pub fn energy(&self, n: u16) -> u16 {
         match self {
-            Amphipod::A(amount) => Amphipod::A(amount + n),
-            Amphipod::B(amount) => Amphipod::B(amount + 10 * n),
-            Amphipod::C(amount) => Amphipod::C(amount + 100 * n),
-            Amphipod::D(amount) => Amphipod::D(amount + 1000 * n),
+            Amphipod::A => n,
+            Amphipod::B => 10 * n,
+            Amphipod::C => 100 * n,
+            Amphipod::D => 1000 * n,
+        }
+    }
+
+    pub fn room(&self) -> u16 {
+        match self {
+            Amphipod::A => 0,
+            Amphipod::B => 2,
+            Amphipod::C => 4,
+            Amphipod::D => 6,
         }
     }
 }
@@ -33,18 +42,20 @@ impl Amphipod {
 impl fmt::Display for Amphipod {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let na = match self {
-            Amphipod::A(amount) => ("A", amount),
-            Amphipod::B(amount) => ("B", amount),
-            Amphipod::C(amount) => ("C", amount),
-            Amphipod::D(amount) => ("D", amount),
+            Amphipod::A => "A",
+            Amphipod::B => "B",
+            Amphipod::C => "C",
+            Amphipod::D => "D",
         };
-        write!(f, "{}=>{}", na.0, na.1)
+        write!(f, "{}", na)
     }
 }
 
 struct Burrow {
     base: String,
-    positions: [Amphipod; 8],
+    amphipods: [Amphipod; 8],
+    positions: [Option<usize>; 15],
+    energy: usize,
 }
 
 impl Burrow {
@@ -59,23 +70,45 @@ impl Burrow {
             .chars()
             .map(|c| Amphipod::new(c))
             .collect();
-        let positions: [Amphipod; 8] = amphipods.as_slice().try_into().unwrap();
+        let amphipods: [Amphipod; 8] = amphipods.as_slice().try_into().unwrap();
         let base = initial_map
             .replace("A", ".")
             .replace("B", ".")
             .replace("C", ".")
             .replace("D", ".");
-        Burrow { base, positions }
+        let positions = [
+            Some(4usize),
+            Some(5),
+            Some(6),
+            Some(7),
+            Some(0),
+            Some(1),
+            Some(2),
+            Some(3),
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+            None,
+        ];
+        Burrow {
+            base,
+            amphipods,
+            positions,
+            energy: 0usize,
+        }
     }
 }
 
 impl fmt::Display for Burrow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut rtv = write!(f, "{}", self.base);
-        for a in self.positions {
-            rtv = write!(f, "{}", a);
+        for a in self.amphipods {
+            rtv = writeln!(f, "{}", a);
         }
-        rtv
+        write!(f, "Energy: {}", self.energy)
     }
 }
 
