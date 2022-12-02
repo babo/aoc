@@ -1,59 +1,35 @@
 use std::fs::read_to_string;
 
-use itertools::Itertools;
-
 fn content() -> Option<String> {
     read_to_string("./input.txt").ok()
 }
 
 fn score_a(pattern: &str) -> usize {
-    let mut iter = pattern.chars();
-    let other = iter.nth(0);
-    match iter.nth(1) {
-        Some('X') => 1 + match other {
-            Some('A') => 3,
-            Some('B') => 0,
-            Some('C') => 6,
-            _ => unreachable!("Never ever")
-        },
-        Some('Y') => 2 + match other {
-            Some('A') => 6,
-            Some('B') => 3,
-            Some('C') => 0,
-            _ => unreachable!("Never ever")
-        },
-        Some('Z') => 3 + match other {
-            Some('A') => 0,
-            Some('B') => 6,
-            Some('C') => 3,
-            _ => unreachable!("Never ever")
-        },
+    match pattern {
+        "A X" => 4,
+        "A Y" => 8,
+        "A Z" => 3,
+        "B X" => 1,
+        "B Y" => 5,
+        "B Z" => 9,
+        "C X" => 7,
+        "C Y" => 2,
+        "C Z" => 6,
         _ => unreachable!("Never ever")
     }
 }
 
 fn score_b(pattern: &str) -> usize {
-    let mut iter = pattern.chars();
-    let other = iter.nth(0);
-    match iter.nth(1) {
-        Some('X') => 0 + match other {
-            Some('A') => 3,
-            Some('B') => 1,
-            Some('C') => 2,
-            _ => unreachable!("Never ever")
-        },
-        Some('Y') => 3 + match other {
-            Some('A') => 1,
-            Some('B') => 2,
-            Some('C') => 3,
-            _ => unreachable!("Never ever")
-        },
-        Some('Z') => 6 + match other {
-            Some('A') => 2,
-            Some('B') => 3,
-            Some('C') => 1,
-            _ => unreachable!("Never ever")
-        },
+    match pattern {
+        "A X" => 3,
+        "A Y" => 4,
+        "A Z" => 8,
+        "B X" => 1,
+        "B Y" => 5,
+        "B Z" => 9,
+        "C X" => 2,
+        "C Y" => 6,
+        "C Z" => 7,
         _ => unreachable!("Never ever")
     }
 }
