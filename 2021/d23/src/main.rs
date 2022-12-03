@@ -20,15 +20,6 @@ impl Amphipod {
         }
     }
 
-    pub fn energy(&self, n: u16) -> u16 {
-        match self {
-            Amphipod::A => n,
-            Amphipod::B => 10 * n,
-            Amphipod::C => 100 * n,
-            Amphipod::D => 1000 * n,
-        }
-    }
-
     pub fn as_num(&self) -> u32 {
         match self {
             Amphipod::A => 1,
@@ -55,11 +46,12 @@ struct Burrow {
     base: String,
     amphipods: [Amphipod; 8],
     positions: [Option<usize>; 15],
-    energy: usize,
 }
 
-fn free_to(pos_f: u32, pos_t: u32, state: &[u32; 15]) -> Option<usize> {
-    if state[pos_t as usize] != 0 {
+fn move_to(pos_f: usize, pos_t: usize, state: &[u32; 15]) -> Option<usize> {
+    println!("move_to {pos_f} {pos_t}");
+
+    if state[pos_t] != 0 || state[pos_f] != 0 {
         return None;
     }
     if pos_f == pos_t {
@@ -73,31 +65,53 @@ fn free_to(pos_f: u32, pos_t: u32, state: &[u32; 15]) -> Option<usize> {
         pos_f = tmp;
     }
     let mut cost = 0usize;
-    if pos_f < 4 {
-        pos_f += 4u32;
-        if state[pos_f as usize] != 0 {
-            return None;
-        }
-        cost += 1;
-    }
-    if pos_f < 8 {
-        cost += 1;
-        pos_f += 6;
-    }
-    if pos_f > pos_t {
-        let tmp = pos_f;
-        pos_f = pos_t;
-        pos_t = tmp;
-    }
-    if state[pos_f as usize..pos_t as usize].iter().sum::<u32>() != 0 {
-        return None;
-    }
 
-    Some(cost + (pos_t - pos_f) as usize)
+    println!("ft {pos_f} {pos_t} {cost}");
+    if pos_t < 8 {
+        cost += 3;
+        let d = pos_t - pos_f;
+        if d < 4 {
+            cost += d * 2;
+            if pos_t < 4 {
+                cost += 1;
+            }
+        } else {
+            cost += (d - 4) * 2;
+        }
+    } else {
+        if pos_f < 4 {
+            if state[pos_f + 4] != 0 {
+                return None;
+            }
+            pos_f += 9;
+            cost += 3;
+        } else {
+            pos_f += 5;
+            cost += 2;
+        }
+        if pos_t <= pos_f {
+            cost += (pos_f - pos_t) * 2;
+            if pos_t == 8 {
+                cost -= 1;
+            }
+            if state[pos_t..pos_f + 1].iter().sum::<u32>() != 0 {
+                return None;
+            }
+        } else {
+            cost += (pos_t - pos_f - 1) * 2;
+            if pos_t == 14 {
+                cost -= 1;
+            }
+            if state[pos_f + 1..pos_t + 1].iter().sum::<u32>() != 0 {
+                return None;
+            }
+        }
+    }
+    Some(cost)
 }
 
-fn solve(s: [u32; 15], energy: usize) -> Option<usize> {
-    if s[0] == 1
+fn ready(s: &[u32; 15]) -> bool {
+    s[0] == 1
         && s[4] == 1
         && s[1] == 2
         && s[5] == 2
@@ -105,57 +119,86 @@ fn solve(s: [u32; 15], energy: usize) -> Option<usize> {
         && s[6] == 3
         && s[3] == 4
         && s[7] == 4
-    {
+}
+
+fn solve(s: [u32; 15], energy: usize, calls: usize) -> Option<usize> {
+    //println!("Calls {calls} {:?}", s);
+    if ready(&s) {
+        println!("Solved {energy}");
         return Some(energy);
     }
-    for j in 8..15 {
-        if s[j] != 0 {
-            let i = (s[j] - 1) as usize;
-            if s[i] == 0 {
-                match free_to(j as u32, i as u32, &s) {
-                    Some(cost) => {
-                        let mut sub = s;
-                        sub[j] = 0;
-                        sub[i] = (i + 1) as u32;
-                        return solve(sub, energy + cost);
+    if calls > 15 {
+        return None;
+    }
+
+    let mut s = s;
+    let mut energy = energy;
+    let mut modified = true;
+    while modified {
+        modified = false;
+        for from in 8..15 {
+            if s[from] != 0 {
+                let val = s[from];
+                let goal = (val - 1) as usize;
+                let above = goal + 4;
+                if s[goal] == 0 {
+                    match move_to(from, goal, &s) {
+                        Some(cost) => {
+                            s[from] = 0;
+                            s[goal] = val;
+                            modified = true;
+                            energy += cost * 10usize.pow(val - 1);
+                            //println!("Move to home: {val} from {from}");
+                        }
+                        None => (),
                     }
-                    None => (),
                 }
-            } else if s[i + 4] == 0 && s[i] == (i + 1) as u32 {
-                let t = i + 4;
-                match free_to(j as u32, t as u32, &s) {
-                    Some(cost) => {
-                        let mut sub = s;
-                        sub[j] = 0;
-                        sub[t] = (i + 1) as u32;
-                        return solve(sub, energy + cost);
+                if s[above] == 0 && s[goal] == val {
+                    match move_to(from, above, &s) {
+                        Some(cost) => {
+                            s[from] = 0;
+                            s[above] = val;
+                            modified = true;
+                            energy += cost * 10usize.pow(val - 1);
+                            //println!("Move to home above: {val} from {from}");
+                        }
+                        None => (),
                     }
-                    None => (),
                 }
             }
         }
     }
+    if ready(&s) {
+        println!("Solved {energy}");
+        return Some(energy);
+    }
 
     let mut m = None;
-    for i in 0u32..4 {
-        let f = if s[(i + 4) as usize] == 0 && s[i as usize] != i + 1 {
-            Some(i)
-        } else if s[(i + 4) as usize] != 0 && s[(i + 4) as usize] != i + 1 {
-            Some(i + 4)
+    for from in 0usize..4 {
+        let above = from + 4;
+        let val = (from + 1) as u32;
+        let f = if s[above] == 0 && s[from] != val {
+            Some(from)
+        } else if s[above] != 0 && s[above] != val {
+            Some(above)
+        } else if s[above] != 0 && s[above] == val && s[from] != val {
+            Some(above)
         } else {
             None
         };
+        //println!("A {from} {above} {:?}", f);
         match f {
             Some(f) => {
+                let val = s[f];
                 for t in 8..15 {
-                    match free_to(f, t, &s) {
+                    match move_to(f, t, &s) {
                         Some(cost) => {
-                            let cost = cost * 10usize.pow(s[f as usize]);
-                            let mut sub = s;
-                            sub[t as usize] = sub[f as usize];
-                            sub[f as usize] = 0;
-                            match solve(sub, energy + cost) {
+                            let mut sub = s.clone();
+                            sub[f] = 0;
+                            sub[t] = val;
+                            match solve(sub, energy + cost * 10usize.pow(val - 1), calls + 1) {
                                 Some(total) => {
+                                    println!("Total {total}");
                                     if m.map_or(true, |x| x > total) {
                                         m = Some(total);
                                     }
@@ -175,8 +218,6 @@ fn solve(s: [u32; 15], energy: usize) -> Option<usize> {
 
 impl Burrow {
     pub fn new(initial_map: &str) -> Self {
-        let dots = initial_map.chars().filter(|x| *x == '.').count();
-        println!("Count: {dots}");
         let amphipods: Vec<Amphipod> = initial_map
             .replace(" ", "")
             .replace("#", "")
@@ -186,20 +227,16 @@ impl Burrow {
             .map(|c| Amphipod::new(c))
             .collect();
         let amphipods: [Amphipod; 8] = amphipods.as_slice().try_into().unwrap();
-        let base = initial_map
-            .replace("A", ".")
-            .replace("B", ".")
-            .replace("C", ".")
-            .replace("D", ".");
+        let base = initial_map.to_string();
         let positions = [
-            Some(0),
-            Some(1),
-            Some(2),
-            Some(3),
             Some(4),
             Some(5),
             Some(6),
             Some(7),
+            Some(0),
+            Some(1),
+            Some(2),
+            Some(3),
             None,
             None,
             None,
@@ -212,55 +249,21 @@ impl Burrow {
             base,
             amphipods,
             positions,
-            energy: 0usize,
         }
     }
 
     pub fn solve(&self) -> Option<usize> {
         let state = self.positions.map(|x| match x {
-            None => 0u32,
             Some(m) => self.amphipods[m].as_num(),
+            None => 0u32,
         });
-        solve(state, 0)
+        solve(state, 0, 0)
     }
 }
 
 impl fmt::Display for Burrow {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "{}", self.base)?;
-        for i in 8..15 {
-            match self.positions[i] {
-                None => {
-                    write!(f, ".")?;
-                }
-                Some(i) => {
-                    let c = self.amphipods[i].to_string();
-                    write!(f, "{}", c.as_str())?;
-                }
-            }
-            if i > 8 && i < 13 {
-                write!(f, " ")?;
-            }
-        }
-        writeln!(f)?;
-        for i in 0..8 {
-            if i % 4 == 0 {
-                write!(f, " ")?;
-            }
-            match self.positions[i] {
-                None => {
-                    write!(f, " .")?;
-                }
-                Some(i) => {
-                    let c = self.amphipods[i].to_string();
-                    write!(f, " {}", c.as_str())?;
-                }
-            }
-            if i == 3 {
-                writeln!(f)?;
-            }
-        }
-        write!(f, "\nEnergy: {}", self.energy)
+        write!(f, "{}", self.base)
     }
 }
 
@@ -294,6 +297,24 @@ mod tests {
 
     fn simple() -> Option<String> {
         read_to_string("./simple.txt").ok()
+    }
+
+    #[test]
+    fn test_moves() {
+        let state = [0u32; 15];
+
+        assert_eq!(move_to(0, 0, &state), Some(0));
+        assert_eq!(move_to(0, 8, &state), Some(4));
+        assert_eq!(move_to(0, 9, &state), Some(3));
+        assert_eq!(move_to(0, 10, &state), Some(3));
+        assert_eq!(move_to(0, 11, &state), Some(5));
+        assert_eq!(move_to(0, 14, &state), Some(10));
+        assert_eq!(move_to(0, 1, &state), Some(6));
+        assert_eq!(move_to(1, 0, &state), Some(6));
+        assert_eq!(move_to(1, 4, &state), Some(5));
+        assert_eq!(move_to(0, 5, &state), Some(5));
+        assert_eq!(move_to(3, 8, &state), Some(10));
+        assert_eq!(move_to(3, 0, &state), Some(10));
     }
 
     #[test]
