@@ -49,9 +49,7 @@ struct Burrow {
 }
 
 fn move_to(pos_f: usize, pos_t: usize, state: &[u32; 15]) -> Option<usize> {
-    println!("move_to {pos_f} {pos_t}");
-
-    if state[pos_t] != 0 || state[pos_f] != 0 {
+    if state[pos_t] != 0 {
         return None;
     }
     if pos_f == pos_t {
@@ -66,17 +64,27 @@ fn move_to(pos_f: usize, pos_t: usize, state: &[u32; 15]) -> Option<usize> {
     }
     let mut cost = 0usize;
 
-    println!("ft {pos_f} {pos_t} {cost}");
     if pos_t < 8 {
-        cost += 3;
-        let d = pos_t - pos_f;
-        if d < 4 {
-            cost += d * 2;
-            if pos_t < 4 {
-                cost += 1;
+        if pos_f & 4 == 0 && state[pos_f + 4] != 0 {
+            return None;
+        }
+        if pos_t & 4 == 0 && state[pos_t + 4] != 0 {
+            return None;
+        }
+        cost += if pos_f & 4 == 4 { 1 } else { 2 };
+        cost += if pos_t & 4 == 4 { 1 } else { 2 };
+        let mut a_f = pos_f & 3;
+        let mut a_t = pos_t & 3;
+        if a_f > a_t {
+            let tmp = a_f;
+            a_f = a_t;
+            a_t = tmp;
+        }
+        cost += 2 * (a_t - a_f);
+        for i in (10 + a_f)..(10 + a_t) {
+            if state[i] != 0 {
+                return None;
             }
-        } else {
-            cost += (d - 4) * 2;
         }
     } else {
         if pos_f < 4 {
@@ -315,6 +323,42 @@ mod tests {
         assert_eq!(move_to(0, 5, &state), Some(5));
         assert_eq!(move_to(3, 8, &state), Some(10));
         assert_eq!(move_to(3, 0, &state), Some(10));
+    }
+
+    #[test]
+    fn test_blocks() {
+        let mut state = [0u32; 15];
+
+        state[4] = 1;
+        assert_eq!(move_to(0, 8, &state), None);
+        state[4] = 0;
+        state[9] = 1;
+        assert_eq!(move_to(0, 8, &state), None);
+        state[9] = 0;
+        state[8] = 1;
+        assert_eq!(move_to(0, 8, &state), None);
+        state[8] = 0;
+
+        state[5] = 1;
+        assert_eq!(move_to(0, 1, &state), None);
+        state[5] = 0;
+        state[10] = 1;
+        assert_eq!(move_to(0, 1, &state), None);
+        state[10] = 0;
+
+        state[11] = 1;
+        assert_eq!(move_to(0, 3, &state), None);
+        state[11] = 0;
+        state[12] = 1;
+        assert_eq!(move_to(0, 3, &state), None);
+        state[12] = 0;
+        state[7] = 1;
+        assert_eq!(move_to(0, 3, &state), None);
+        state[7] = 0;
+
+        state[13] = 1;
+        assert_eq!(move_to(0, 14, &state), None);
+        state[13] = 0;
     }
 
     #[test]
