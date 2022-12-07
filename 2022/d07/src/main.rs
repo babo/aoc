@@ -6,30 +6,27 @@ fn content() -> Option<String> {
     read_to_string("./input.txt").ok()
 }
 
-fn calc_subdirs(input: &str, parent: &str, start_: usize) -> (Vec<usize>, usize) {
+fn calc_subdirs(input: &str, parent: &str, start_: usize) -> (Vec<usize>, usize, usize) {
     let mut dirs = Vec::new();
     let mut it = input.lines().skip(start_);
     let mut count = 0usize;
     let mut total = 0usize;
-    let mut run = true;
 
-    while run {
+    loop {
         let adv = match it.next() {
             Some(line) => {
                 count += 1;
                 if line.starts_with("$ cd ..") {
-                    run = false;
-                    0
+                    break
                 } else if line.starts_with("$ cd ") {
-                    let (subdirs, adv) = calc_subdirs(input, &line[4..], start_ + count);
+                    let (subdirs, size, adv) = calc_subdirs(input, &line[4..], start_ + count);
                     dirs.extend(subdirs.iter());
-                    let s = subdirs.iter().last().map(|x| *x).unwrap();
-                    total += s;
+                    total += size;
                     count += adv;
                     adv
-                } else if line.starts_with("dir ") {
-                    0
                 } else if line.starts_with("$ ls") {
+                    0
+                } else if line.starts_with("dir ") {
                     0
                 } else {
                     let spc = line.find(" ").unwrap();
@@ -44,18 +41,17 @@ fn calc_subdirs(input: &str, parent: &str, start_: usize) -> (Vec<usize>, usize)
         }
     }
     dirs.push(total);
-    (dirs, count)
+    (dirs, total, count)
 }
 
 fn solution_a(input: &str) -> Option<usize> {
-    let dirs = calc_subdirs(input, "", 0).0;
+    let dirs = calc_subdirs(input, "/", 1).0;
     Some(dirs.into_iter().filter(|size| *size <= 100000).sum())
 }
 
 fn solution_b(input: &str) -> Option<usize> {
     let dirs: Vec<usize> = calc_subdirs(input, "/", 1).0.iter().sorted().rev().map(|x| *x).collect();
     let used_space: usize = *dirs.get(0).unwrap();
-    println!("{used_space}");
     let free_space: usize = 70000000usize - used_space;
     let need = 30000000;
     if free_space > need {
