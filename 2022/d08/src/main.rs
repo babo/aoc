@@ -1,73 +1,64 @@
 use std::fs::read_to_string;
+use std::collections::HashSet;
 
 fn content() -> Option<String> {
     read_to_string("./input.txt").ok()
 }
 
 fn solution_a(input: &str) -> Option<usize> {
-    let data: Vec<&str> = input
-        .lines()
-        .map(|x| x.trim())
-        .filter(|x| x.len() > 0usize)
-        .collect();
-    let cols = data.len();
-    let rows = data[0].len();
-    let ptr = |r: usize, c: usize| -> usize { r * cols + c };
-    let nn = |r: usize, c: usize| -> u8 { data[r].chars().nth(c).unwrap() as u8 };
-    let mut res = Vec::<i8>::new();
+    let cols = input.find('\n').map(|first| input.get(first+1..).unwrap().find('\n').unwrap()).unwrap();
+    let data: Vec<u8> = input.chars().filter(|x| x.is_ascii_digit()).map(|x| x as u8 - '0' as u8 + 1).collect();
+    let rows = data.len() / cols;
+    let nn = |r: usize, c: usize| -> u8 { data[r*cols + c]};
+    let mut res = HashSet::<(usize, usize)>::new();
     let mut m;
 
     for r in 0usize..rows {
-        m = '0' as u8 - 1;
+        m = 0;
         for c in 0usize..cols {
             let n = nn(r, c);
-            res.push(if n > m { 1 } else { 0 });
             if n > m {
+                res.insert((r, c));
                 m = n;
             }
         }
 
-        m = '0' as u8 - 1;
+        m = 0;
         for c in (0usize..cols).rev() {
             let n = nn(r, c);
             if n > m {
-                res.get_mut(ptr(r, c)).map(|x| *x += 1);
+                res.insert((r, c));
                 m = n;
             }
         }
     }
 
     for c in 0usize..cols {
-        m = '0' as u8 - 1;
+        m = 0;
         for r in 0usize..rows {
             let n = nn(r, c);
             if n > m {
-                res.get_mut(ptr(r, c)).map(|x| *x += 1);
+                res.insert((r, c));
                 m = n;
             }
         }
-        m = '0' as u8 - 1;
+        m = 0;
         for r in (0usize..rows).rev() {
             let n = nn(r, c);
             if n > m {
-                res.get_mut(ptr(r, c)).map(|x| *x += 1);
+                res.insert((r, c));
                 m = n;
             }
         }
     }
-    let rtv = res.iter().filter(|x| (**x) != 0).count();
-    Some(rtv)
+    Some(res.len())
 }
 
 fn solution_b(input: &str) -> Option<usize> {
-    let data: Vec<&str> = input
-        .lines()
-        .map(|x| x.trim())
-        .filter(|x| x.len() > 0usize)
-        .collect();
-    let cols = data.len();
-    let rows = data[0].len();
-    let nn = |r: usize, c: usize| -> u8 { data[r].chars().nth(c).unwrap() as u8 };
+    let cols = input.find('\n').map(|first| input.get(first+1..).unwrap().find('\n').unwrap()).unwrap();
+    let data: Vec<u8> = input.chars().filter(|x| x.is_ascii_digit()).map(|x| x as u8 - '0' as u8 + 1).collect();
+    let rows = data.len() / cols;
+    let nn = |r: usize, c: usize| -> u8 { data[r*cols + c]};
 
     let mut score = 0;
 
