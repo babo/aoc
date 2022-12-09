@@ -6,18 +6,14 @@ fn content() -> Option<String> {
 }
 
 fn move_knot(hp: (i32, i32), tp: (i32, i32)) -> (i32, i32) {
-    let d = (hp.0 - tp.0, hp.1 - tp.1);
-    if d.0 == 0 && d.1.abs() > 1 {
-        (tp.0, tp.1 + d.1 / 2)
-    } else if d.1 == 0 && d.0.abs() > 1 {
-        (tp.0 + d.0 / 2, tp.1)
-    } else if d.0.abs() > 1 || d.1.abs() > 1 {
-        (
-            tp.0 + if d.0 >= 0 { 1 } else { -1 },
-            tp.1 + if d.1 >= 0 { 1 } else { -1 },
-        )
-    } else {
-        tp
+    match (hp.0 - tp.0, hp.1 - tp.1) {
+        (0, y) if y.abs() > 1 => (tp.0, tp.1 + y / 2),
+        (x, 0) if x.abs() > 1 => (tp.0 + x / 2, tp.1),
+        (x, y) if x.abs() > 1 || y.abs() > 1 => (
+            tp.0 + if x >= 0 { 1 } else { -1 },
+            tp.1 + if y >= 0 { 1 } else { -1 },
+        ),
+        _ => tp,
     }
 }
 
