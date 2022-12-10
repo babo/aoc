@@ -1,9 +1,60 @@
+use std::collections::HashMap;
 use std::fs::read_to_string;
 
 use itertools::Itertools;
 
 fn content() -> Option<String> {
     read_to_string("./input.txt").ok()
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+enum FileSystemEntry {
+    FileKind(String, usize),
+    DirKind(usize),
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct Folder {
+    name: String,
+    id: usize,
+    size: usize,
+    parent: Option<usize>,
+    content: Vec<FileSystemEntry>,
+}
+
+struct FileSystem {
+    root: Option<usize>,
+    folders: Vec<Folder>,
+    directory: HashMap<String, usize>,
+}
+
+impl Folder {
+    pub fn new(name: &str, parent: Option<usize>) -> Self {
+        let name = name.to_string();
+        let content = Vec::<FileSystemEntry>::new();
+        let id = 0;
+        let size = 0usize;
+
+        Folder {
+            name,
+            id,
+            size,
+            parent,
+            content,
+        }
+    }
+
+    pub fn assign(&mut self, id: usize) {
+        self.id = id;
+    }
+
+    pub fn add(&mut self, entry: FileSystemEntry) {
+        match &entry {
+            FileSystemEntry::FileKind(_, size) => self.size += size,
+            FileSystemEntry::DirKind(_id) => (),
+        }
+        self.content.push(entry);
+    }
 }
 
 fn calc_subdirs(input: &str, parent: &str, start_: usize) -> (Vec<usize>, usize, usize) {
@@ -17,7 +68,7 @@ fn calc_subdirs(input: &str, parent: &str, start_: usize) -> (Vec<usize>, usize,
             Some(line) => {
                 count += 1;
                 if line.starts_with("$ cd ..") {
-                    break
+                    break;
                 } else if line.starts_with("$ cd ") {
                     let (subdirs, size, adv) = calc_subdirs(input, &line[4..], start_ + count);
                     dirs.extend(subdirs.iter());
@@ -50,14 +101,23 @@ fn solution_a(input: &str) -> Option<usize> {
 }
 
 fn solution_b(input: &str) -> Option<usize> {
-    let dirs: Vec<usize> = calc_subdirs(input, "/", 1).0.iter().sorted().rev().map(|x| *x).collect();
+    let dirs: Vec<usize> = calc_subdirs(input, "/", 1)
+        .0
+        .iter()
+        .sorted()
+        .rev()
+        .map(|x| *x)
+        .collect();
     let used_space: usize = *dirs.get(0).unwrap();
     let free_space: usize = 70000000usize - used_space;
     let need = 30000000;
     if free_space > need {
         None
     } else {
-        dirs.iter().rev().find(|x| *x + free_space >= need).map(|x| *x)
+        dirs.iter()
+            .rev()
+            .find(|x| *x + free_space >= need)
+            .map(|x| *x)
     }
 }
 

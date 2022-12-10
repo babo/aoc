@@ -130,12 +130,12 @@ fn ready(s: &[u32; 15]) -> bool {
 }
 
 fn solve(s: [u32; 15], energy: usize, calls: usize) -> Option<usize> {
-    //println!("Calls {calls} {:?}", s);
+    println!("Calls {calls} {:?}", s);
     if ready(&s) {
         println!("Solved {energy}");
         return Some(energy);
     }
-    if calls > 15 {
+    if calls > 255 {
         return None;
     }
 
@@ -156,19 +156,48 @@ fn solve(s: [u32; 15], energy: usize, calls: usize) -> Option<usize> {
                             s[goal] = val;
                             modified = true;
                             energy += cost * 10usize.pow(val - 1);
-                            //println!("Move to home: {val} from {from}");
+                            println!("F");
                         }
                         None => (),
                     }
-                }
-                if s[above] == 0 && s[goal] == val {
+                } else if s[above] == 0 && s[goal] == val {
                     match move_to(from, above, &s) {
                         Some(cost) => {
                             s[from] = 0;
                             s[above] = val;
                             modified = true;
                             energy += cost * 10usize.pow(val - 1);
-                            //println!("Move to home above: {val} from {from}");
+                            println!("A");
+                        }
+                        None => (),
+                    }
+                }
+            }
+        }
+        for from in 0..4 {
+            let top = from + 4;
+            let val = (from + 1) as u32;
+            if s[top] != 0 && s[top] != val {
+                let val = s[top];
+                let pos = (val - 1) as usize;
+                if s[pos] == 0 {
+                    match move_to(top, pos, &s) {
+                        Some(cost) => {
+                            s[top] = 0;
+                            s[pos] = val;
+                            modified = true;
+                            energy += cost * 10usize.pow(val - 1);
+                        }
+                        None => (),
+                    }
+                } else if s[pos] == val && s[pos + 1] == 0 {
+                    let above = pos + 4;
+                    match move_to(top, above, &s) {
+                        Some(cost) => {
+                            s[top] = 0;
+                            s[above] = val;
+                            modified = true;
+                            energy += cost * 10usize.pow(val - 1);
                         }
                         None => (),
                     }
@@ -182,43 +211,68 @@ fn solve(s: [u32; 15], energy: usize, calls: usize) -> Option<usize> {
     }
 
     let mut m = None;
-    for from in 0usize..4 {
+
+    for from in (1usize..4).rev() {
+        let val = (from + 1) as u32;
+        if s[from] == 0 && s[from + 4] == 0 {
+            for f in 0..from {
+                if s[f] == val && s[f+4] != 0 {
+                    let f = f + 4;
+                    let val = s[f];
+                    for t in 8..15 {
+                        match move_to(f, t, &s) {
+                            Some(cost) => {
+                                let mut sub = s.clone();
+                                sub[f] = 0;
+                                sub[t] = val;
+                                match solve(sub, energy + cost * 10usize.pow(val - 1), calls + 1) {
+                                    Some(total) => {
+                                        println!("Total {total}");
+                                        if m.map_or(true, |x| x > total) {
+                                            m = Some(total);
+                                        }
+                                    }
+                                    None => (),
+                                }
+                            }
+                            None => (),
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    for from in (0usize..4).rev() {
         let above = from + 4;
         let val = (from + 1) as u32;
-        let f = if s[above] == 0 && s[from] != val {
-            Some(from)
-        } else if s[above] != 0 && s[above] != val {
-            Some(above)
-        } else if s[above] != 0 && s[above] == val && s[from] != val {
-            Some(above)
+        let f = if s[above] == 0 && s[from] != val && s[from] != 0 {
+            from
+        } else if s[above] != 0 && (s[above] != val || s[from] != val) {
+            above
         } else {
-            None
+            continue;
         };
-        //println!("A {from} {above} {:?}", f);
-        match f {
-            Some(f) => {
-                let val = s[f];
-                for t in 8..15 {
-                    match move_to(f, t, &s) {
-                        Some(cost) => {
-                            let mut sub = s.clone();
-                            sub[f] = 0;
-                            sub[t] = val;
-                            match solve(sub, energy + cost * 10usize.pow(val - 1), calls + 1) {
-                                Some(total) => {
-                                    println!("Total {total}");
-                                    if m.map_or(true, |x| x > total) {
-                                        m = Some(total);
-                                    }
-                                }
-                                None => (),
+
+        let val = s[f];
+        for t in 8..15 {
+            match move_to(f, t, &s) {
+                Some(cost) => {
+                    let mut sub = s.clone();
+                    sub[f] = 0;
+                    sub[t] = val;
+                    match solve(sub, energy + cost * 10usize.pow(val - 1), calls + 1) {
+                        Some(total) => {
+                            println!("Total {total}");
+                            if m.map_or(true, |x| x > total) {
+                                m = Some(total);
                             }
                         }
                         None => (),
                     }
                 }
+                None => (),
             }
-            None => (),
         }
     }
     m

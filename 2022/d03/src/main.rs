@@ -53,11 +53,16 @@ fn solution_b(input: &str) -> Option<usize> {
 fn main() {
     let c = content().unwrap();
 
+    let start = std::time::Instant::now();
     let a = solution_a(&c);
-    let b = solution_b(&c);
+    let dur1 = start.elapsed().as_nanos();
 
-    println!("Step A: {:?}", a);
-    println!("Step B: {:?}", b);
+    let start = std::time::Instant::now();
+    let b = solution_b(&c);
+    let dur2 = start.elapsed().as_nanos();
+
+    println!("Step A: {dur1} ns {:?}", a);
+    println!("Step B: {dur2} ns {:?}", b);
 }
 
 #[cfg(test)]
