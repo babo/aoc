@@ -86,23 +86,24 @@ impl Iterator for MonkeyInput {
 }
 
 impl Monkey {
-    fn next(&self, worry: &u128, d: u128) -> (u128, usize) {
+    const REM: u128 = 2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23;
+
+    fn next(&self, worry: u128, d: u128) -> (u128, usize) {
         //println!("  Monkey inspects an item with a worry level of {worry}.");
-        let p1 = self.operation.0.map_or(worry.clone(), |x| x as u128);
-        let p2 = self.operation.2.map_or(worry.clone(), |x| x as u128);
+        let p1 = self.operation.0.map_or(worry, |x| x as u128);
+        let p2 = self.operation.2.map_or(worry, |x| x as u128);
         let mut worry = if self.operation.1 == '+' {
             //println!("    Worry level increases by {p2} to {}.", p1 + p2);
-            p1 + p2
+            (p1 + p2) % Monkey::REM
         } else {
             //println!("    Worry level multiplied by {p2} to {}.", p1 * p2);
-            let r = p1 * p2;
-            r % (2 * 3 * 5 * 7 * 11 * 13 * 17 * 19 * 23 * 29)
+            (p1 * p2) % Monkey::REM
         };
         if d != 1 {
             worry /= d;
         }
         (
-            worry.clone(),
+            worry,
             if worry % self.div == 0 {
                 self.partners.0
             } else {
@@ -130,11 +131,11 @@ fn solution_a(input: &str) -> usize {
             //println!("Monkey {i}:");
             let m = monkeys.get(i).unwrap();
 
-            let mut l = Vec::from_iter(m.items.iter().map(|x| x.clone()));
+            let mut l = Vec::from_iter(m.items.iter().map(|x| *x));
             l.extend_from_slice(next.get(i).unwrap());
 
             l.iter().for_each(|item| {
-                let (worry, partner) = m.next(&item, 3);
+                let (worry, partner) = m.next(*item, 3);
                 //println!("    Item with worry level {worry} is thrown to monkey {partner}.");
                 if partner < i {
                     prev.get_mut(partner).map(|p| p.push(worry));
@@ -148,7 +149,7 @@ fn solution_a(input: &str) -> usize {
         (0..n - 1).for_each(|i| {
             monkeys
                 .get_mut(i)
-                .map(|m| m.items = Vec::from_iter(prev.get(i).unwrap().iter().map(|x| x.clone())));
+                .map(|m| m.items = Vec::from_iter(prev.get(i).unwrap().iter().map(|x| *x)));
         });
         monkeys.iter_mut().last().map(|m| m.items.clear());
     }
@@ -180,11 +181,11 @@ fn solution_b(input: &str) -> usize {
         (0..n).for_each(|i| {
             let m = monkeys.get(i).unwrap();
 
-            let mut l = Vec::from_iter(m.items.iter().map(|x| x.clone()));
+            let mut l = Vec::from_iter(m.items.iter().map(|x| *x));
             l.extend_from_slice(next.get(i).unwrap());
 
             l.iter().for_each(|item| {
-                let (worry, partner) = m.next(item, 1);
+                let (worry, partner) = m.next(*item, 1);
                 if partner < i {
                     prev.get_mut(partner).map(|p| p.push(worry));
                 } else {
@@ -197,7 +198,7 @@ fn solution_b(input: &str) -> usize {
         (0..n - 1).for_each(|i| {
             monkeys
                 .get_mut(i)
-                .map(|m| m.items = Vec::from_iter(prev.get(i).unwrap().iter().map(|x| x.clone())));
+                .map(|m| m.items = Vec::from_iter(prev.get(i).unwrap().iter().map(|x| *x)));
         });
         monkeys.iter_mut().last().map(|m| m.items.clear());
     }
