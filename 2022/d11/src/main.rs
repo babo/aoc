@@ -21,7 +21,7 @@ impl MonkeyInput {
 
 struct Monkey {
     items: Vec<u128>,
-    operation: (Option<usize>, char, Option<usize>),
+    operation: (char, Option<usize>),
     div: u128,
     partners: (usize, usize),
     inspected: usize,
@@ -73,7 +73,6 @@ impl Iterator for MonkeyInput {
         self.pos += 1;
         Some(Monkey {
             operation: (
-                usize::from_str_radix(operation.get(0).unwrap(), 10).ok(),
                 operation.get(1).unwrap().chars().next().unwrap(),
                 usize::from_str_radix(operation.get(2).unwrap(), 10).ok(),
             ),
@@ -90,14 +89,13 @@ impl Monkey {
 
     fn next(&self, worry: u128, d: u128) -> (u128, usize) {
         //println!("  Monkey inspects an item with a worry level of {worry}.");
-        let p1 = self.operation.0.map_or(worry, |x| x as u128);
-        let p2 = self.operation.2.map_or(worry, |x| x as u128);
-        let mut worry = if self.operation.1 == '+' {
+        let param = self.operation.1.map_or(worry, |x| x as u128);
+        let mut worry = if self.operation.0 == '+' {
             //println!("    Worry level increases by {p2} to {}.", p1 + p2);
-            (p1 + p2) % Monkey::REM
+            (worry + param) % Monkey::REM
         } else {
             //println!("    Worry level multiplied by {p2} to {}.", p1 * p2);
-            (p1 * p2) % Monkey::REM
+            (worry * param) % Monkey::REM
         };
         if d != 1 {
             worry /= d;
