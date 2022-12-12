@@ -2,8 +2,6 @@ use std::collections::HashMap;
 use std::collections::HashSet;
 use std::fs::read_to_string;
 
-use itertools::Itertools;
-
 fn content() -> Option<String> {
     read_to_string("./input.txt").ok()
 }
@@ -57,22 +55,12 @@ impl Terrain {
                     _ => return None,
                 };
                 self.get(&nb)
-                    .map(|neighbor| {
-                        if neighbor >= b'a' && neighbor <= b'z' && neighbor <= value + 1 {
-                            Some(nb)
-                        } else {
-                            None
-                        }
+                    .filter(|neighbor| {
+                        *neighbor >= b'a' && *neighbor <= b'z' && *neighbor <= value + 1
                     })
-                    .flatten()
+                    .map(|_| nb)
             })
             .flatten()
-    }
-
-    fn distance(&self, position: &(usize, usize)) -> usize {
-        let dr = self.goal.0 as isize - position.0 as isize;
-        let dc = self.goal.1 as isize - position.1 as isize;
-        (dr * dr + dc * dc) as usize
     }
 }
 
@@ -92,11 +80,8 @@ fn solution_a(input: &str) -> Option<usize> {
 
                 (0..4)
                     .map(|dir| terrain.direction(&position, dir))
-                    .filter(|p| p.is_some())
-                    .map(|p| p.unwrap())
-                    .sorted_by(|a, b| Ord::cmp(&terrain.distance(a), &terrain.distance(b)))
                     .for_each(|p| {
-                        next.insert((p, count + 1));
+                        p.map(|v| next.insert((v, count + 1)));
                     });
             }
         });
@@ -124,23 +109,16 @@ fn solution_b(input: &str) -> Option<usize> {
     }
 
     while !visit.is_empty() {
-        visit.iter().for_each(|p| {
-            let count = p.1;
-            let val = terrain.get(&p.0);
-            if val.is_none() {
-                println!("Invalid point found");
-                return;
-            }
+        visit.iter().for_each(|pp| {
+            let (position, count) = *pp;
 
-            if seen.get(&p.0).map_or(true, |prev| *prev >= p.1) {
-                seen.insert(p.0, p.1);
+            if seen.get(&position).map_or(true, |prev| prev >= &count) {
+                seen.insert(position, count);
 
                 (0..4)
-                    .map(|dir| terrain.direction(&p.0, dir))
-                    .filter(|p| p.is_some())
-                    .map(|p| p.unwrap())
+                    .map(|dir| terrain.direction(&position, dir))
                     .for_each(|p| {
-                        next.insert((p, count + 1));
+                        p.map(|v| next.insert((v, count + 1)));
                     });
             }
         });
