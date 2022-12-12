@@ -49,18 +49,12 @@ impl Terrain {
     fn direction(&self, position: &(usize, usize), dir: u8) -> Option<(usize, usize)> {
         self.get(position)
             .map(|value| {
-                if dir == 2 && position.1 == 0 {
-                    return None;
-                }
-                if dir == 3 && position.0 == 0 {
-                    return None;
-                }
                 let nb = match dir {
                     0 => (position.0, position.1 + 1),
                     1 => (position.0 + 1, position.1),
-                    2 => (position.0, position.1 - 1),
-                    3 => (position.0 - 1, position.1),
-                    _ => unreachable!("What?"),
+                    2 if position.1 != 0 => (position.0, position.1 - 1),
+                    3 if position.0 != 0 => (position.0 - 1, position.1),
+                    _ => return None,
                 };
                 self.get(&nb)
                     .map(|neighbor| {
