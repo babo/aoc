@@ -1,6 +1,8 @@
 use std::fmt;
 use std::fs::read_to_string;
 
+mod other;
+
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 enum Amphipod {
     A,
@@ -334,9 +336,10 @@ fn content() -> Option<String> {
 }
 
 fn solution_a(input: &str) -> Option<usize> {
-    let b = Burrow::new(input);
-    println!("{}", b);
-    b.solve()
+    Some(other::solve(input))
+    //let b = Burrow::new(input);
+    //println!("{}", b);
+    //b.solve()
 }
 
 fn solution_b(_input: &str) -> Option<usize> {
