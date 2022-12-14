@@ -9,10 +9,11 @@ struct Cave {
     cols: usize,
     orig: (usize, usize),
     data: Vec<u8>,
+    bottom: bool,
 }
 
 impl Cave {
-    fn new(input: &str) -> Self {
+    fn new(input: &str, bottom: bool) -> Self {
         let read_line = |line: &str| -> Vec<(usize, usize)> {
             line.split(" -> ")
                 .map(|coord| {
@@ -51,12 +52,17 @@ impl Cave {
                     }
                 })
             });
-        println!("{:?} {:?}", mini, maxi);
-        let rows = maxi.0 - mini.0 + 1;
-        let cols = maxi.1 - mini.1 + 1;
-        let n = rows * cols;
+        let rows = maxi.0 - mini.0 + if bottom { 3 } else { 1 };
+        let cols = maxi.1 - mini.1 + if bottom { 1 + 2 * rows } else { 1 };
+
+        let n = if bottom {
+            rows * cols + 2 * cols * rows
+        } else {
+            rows * cols
+        };
         let mut data: Vec<u8> = Vec::from_iter((0..=n).map(|_| b'.'));
 
+        let shift = if bottom { rows } else { 0 };
         input
             .lines()
             .map(|x| x.trim())
@@ -72,7 +78,7 @@ impl Cave {
                             let c2 = pc.max(cc);
 
                             for c in c1..=c2 {
-                                data.get_mut(r * cols + c).map(|x| *x = b'C');
+                                data.get_mut(r * cols + c + shift).map(|x| *x = b'#');
                             }
                         } else if pc == cc {
                             let c = pc;
@@ -80,7 +86,7 @@ impl Cave {
                             let r2 = pr.max(cr);
 
                             for r in r1..=r2 {
-                                data.get_mut(r * cols + c).map(|x| *x = b'R');
+                                data.get_mut(r * cols + c + shift).map(|x| *x = b'#');
                             }
                         }
 
@@ -90,20 +96,32 @@ impl Cave {
         Cave {
             rows,
             cols,
-            orig: (pouring.0 - mini.0, pouring.1 - mini.1),
+            orig: (pouring.0 - mini.0, pouring.1 - mini.1 + shift),
             data,
+            bottom,
         }
     }
 
     fn draw(&self) {
         println!("dim: {} {}", self.rows, self.cols);
         println!("orig: {:?}", self.orig);
-        for r in 0..self.rows {
+        for r in 0..self.rows - 1 {
             for c in 0..self.cols {
                 print!("{}", (self.data[self.pos(r, c)]) as char)
             }
             println!();
         }
+        let r = self.rows - 1;
+        if self.bottom {
+            for c in 0..self.cols {
+                print!("{}", (self.data[self.pos(r, c)]) as char)
+            }
+        } else {
+            for c in 0..self.cols {
+                print!("{}", (self.data[self.pos(r, c)]) as char)
+            }
+        }
+        println!();
     }
 
     fn pos(&self, r: usize, c: usize) -> usize {
@@ -120,6 +138,10 @@ impl Cave {
             while r < self.rows && c < self.cols {
                 if self.data[self.pos(r, c)] != b'.' {
                     break;
+                } else if self.bottom && r + 2 >= self.rows {
+                    let p = self.pos(r, c);
+                    self.data.get_mut(p).map(|x| *x = b'X');
+                    return true;
                 } else if r + 1 < self.rows && self.data[self.pos(r + 1, c)] == b'.' {
                     r += 1;
                 } else if c == 0 {
@@ -147,7 +169,7 @@ impl Cave {
 }
 
 fn solution_a(input: &str) -> Option<usize> {
-    let mut cave = Cave::new(input);
+    let mut cave = Cave::new(input, false);
     let count = cave.drops();
     cave.draw();
 
@@ -155,8 +177,11 @@ fn solution_a(input: &str) -> Option<usize> {
 }
 
 fn solution_b(input: &str) -> Option<usize> {
-    Cave::new(input);
-    None
+    let mut cave = Cave::new(input, true);
+    let count = cave.drops();
+    cave.draw();
+
+    Some(count)
 }
 
 fn main() {
@@ -185,24 +210,24 @@ mod tests {
     #[test]
     fn test_simple_a() {
         let data = simple().unwrap();
-        assert_eq!(solution_a(&data), Some(24 + 1));
+        assert_eq!(solution_a(&data), Some(24));
     }
 
     #[test]
     fn test_simple_b() {
         let data = simple().unwrap();
-        assert_eq!(solution_b(&data), Some(0));
+        assert_eq!(solution_b(&data), Some(93));
     }
 
     #[test]
     fn test_solution_a() {
         let c = content().unwrap();
-        assert_eq!(solution_a(&c), Some(0));
+        assert_eq!(solution_a(&c), Some(768));
     }
 
     #[test]
     fn test_solution_b() {
         let c = content().unwrap();
-        assert_eq!(solution_b(&c), Some(0));
+        assert_eq!(solution_b(&c), Some(26686));
     }
 }
