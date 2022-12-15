@@ -1,20 +1,8 @@
-use std::fs::read_to_string;
 use std::fmt;
+use std::fs::read_to_string;
 
 fn content() -> Option<String> {
     read_to_string("./input.txt").ok()
-}
-
-struct PacketInput {
-    lines: String,
-    counter: usize,
-}
-
-impl PacketInput {
-    fn new(lines: &str) -> Self {
-        let lines = lines.to_string();
-        PacketInput { lines, counter: 0 }
-    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -24,9 +12,49 @@ struct PacketLine {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct Packet {
-    left: PacketLine,
-    right: PacketLine,
+enum Token {
+    Number(i32),
+    ListStart,
+    ListEnd,
+}
+
+impl PacketLine {
+    fn new(line: &str) -> Self {
+        PacketLine { line: line.to_string(), pos: 0}
+    }
+}
+
+impl Iterator for PacketLine {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.line.chars().nth(self.pos) {
+            None => None,
+            Some('[') => {
+                self.pos += 1;
+                Some(Token::ListStart)
+            }
+            Some(']') => {
+                self.pos += 1;
+                Some(Token::ListEnd)
+            }
+            Some(',') => {
+                self.pos += 1;
+                PacketLine::next(self)
+            }
+            Some(c) if c.is_ascii_digit() => {
+                let mut num = 0i32;
+                let mut c = Some(c);
+                while c.map_or(false, |c| c.is_ascii_digit()) {
+                    c.map(|c| num = num * 10 + c as i32 - '0' as i32);
+                    self.pos += 1;
+                    c = self.line.chars().nth(self.pos + 1);
+                }
+                Some(Token::Number(num))
+            }
+            _ => unimplemented!("What?"),
+        }
+    }
 }
 
 impl fmt::Display for PacketLine {
@@ -35,167 +63,15 @@ impl fmt::Display for PacketLine {
     }
 }
 
-impl Packet {
-    fn validate(&self) -> bool {
-        let mut left: Vec<u8> = self.left.line.bytes().collect();
-        let mut right: Vec<u8> = self.right.line.bytes().collect();
-        let mut l = 0;
-        let mut r = 0;
-
-        loop {
-            let a = left.get(l);
-            let b = right.get(r);
-
-            if a.is_none() {
-                return true;
-            }
-            if b.is_none() {
-                return false;
-            }
-            let a = a.unwrap();
-            let b = b.unwrap();
-            if a == b {
-                l += 1;
-                r += 1;
-                continue;
-            }
-
-            let mut inc_l = 0;
-            let l_num = if a.is_ascii_digit() {
-                let mut n = 0;
-                while l + inc_l < left.len() {
-                    match left.get(l + inc_l) {
-                        Some(c) if *c >= b'0' && *c <= b'9' => n = c - b'0' + n * 10,
-                        _ => break,
-                    }
-                    inc_l += 1;
-                }
-                Some(n)
-            } else {
-                None
-            };
-            let mut inc_r = 0;
-            let r_num = if b.is_ascii_digit() {
-                let mut n = 0;
-                while r + inc_r < right.len() {
-                    match right.get(r + inc_r) {
-                        Some(c) if *c >= b'0' && *c <= b'9' => n = c - b'0' + n * 10,
-                        _ => break,
-                    }
-                    inc_r += 1;
-                }
-                Some(n)
-            } else {
-                None
-            };
-            if l_num.is_some() && r_num.is_some() {
-                let ll = l_num.unwrap();
-                let rr = r_num.unwrap();
-                if ll != rr {
-                    return ll < rr;
-                }
-                l += inc_l;
-                r += inc_r;
-                continue;
-            }
-            if *a == b']'  {
-                return true;
-            }
-            if *a == b',' && *b == b']' && r + 1 == right.len() {
-                return true;
-            }
-            if l_num.is_some() {
-                left.insert(l + inc_l + 1, b']');
-                left.insert(l, b'[');
-                println!("Rearrange left {:?}", r_num);
-                left.iter().take(l+inc_l+1).for_each(|c| {
-                    print!("{}", *c as char);
-                });
-                println!();
-                continue;
-            }
-            if r_num.is_some() {
-                right.insert(r + inc_r + 1, b']');
-                right.insert(r, b'[');
-                println!("Rearrange right {:?}", l_num);
-                right.iter().take(r+inc_r+1).for_each(|c| {
-                    print!("{}", *c as char);
-                });
-                println!();
-                continue;
-            }
-
-            println!("Between v");
-            left.iter().take(l).for_each(|c| {
-                print!("{}", *c as char);
-            });
-            println!();
-            right.iter().take(r).for_each(|c| {
-                print!("{}", *c as char);
-            });
-            println!();
-            println!("Here ^");
-
-            return false;
-        }
-    }
-}
-
-enum Token {
-    Number(i32),
-    ListStart,
-    ListEnd,
-    EOL
-}
-
-impl Iterator for PacketLine {
-    type Item = (Token, Token);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        None
-    }
-}
-
-impl Iterator for PacketInput {
-    type Item = Packet;
-
-    fn next(&mut self) -> Option<Packet> {
-        let mut lines = self.lines.lines().skip(self.counter * 3);
-        let left = lines.next();
-        let right = lines.next();
-
-        right
-            .map(|r| {
-                left.map(|l| {
-                    self.counter += 1;
-                    let left = PacketLine { line: l.trim().to_string(), pos: 0};
-                    let right = PacketLine { line: r.trim().to_string(), pos: 0};
-                    Packet {
-                        left,
-                        right,
-                    }
-                })
-            })
-            .flatten()
-    }
-}
-
 fn solution_a(input: &str) -> usize {
-    let packets = PacketInput::new(input);
-    packets
-        .enumerate()
-        .map(|ip| {
-            if ip.1.validate() {
-                println!("valid {}", ip.0);
-                ip.0
-            } else {
-                println!("invalid {}", ip.0);
-                println!("{}", ip.1.left);
-                println!("{}", ip.1.right);
-                0
-            }
-        })
-        .sum()
+    let lines:Vec<_> = input.lines().map(|x| x.trim()).filter(|x| !x.is_empty()).map(|line|
+        PacketLine::new(line)).collect();
+
+    lines.iter().step_by(2).zip(
+    lines.iter().skip(1).step_by(2)).map(|(a, b)| {
+        println!("{a} {b}");
+        0
+    }).sum()
 }
 
 fn solution_b(_input: &str) -> usize {
@@ -246,6 +122,44 @@ mod tests {
     #[test]
     fn test_solution_b() {
         let c = content().unwrap();
-        assert_eq!(solution_b(&c), Some(0));
+        assert_eq!(solution_b(&c), 23391);
+    }
+
+    #[test]
+    fn test_packet_parser() {
+        let line = "[1,[2]]";
+        let pl = PacketLine {
+            line: line.to_string(),
+            pos: 0,
+        };
+
+        let mut it = pl.into_iter();
+
+        let token = it.next();
+        assert!(token.is_some());
+        assert_eq!(token.unwrap(), Token::ListStart);
+
+        let token = it.next();
+        assert!(token.is_some());
+        assert_eq!(token.unwrap(), Token::Number(1));
+
+        let token = it.next();
+        assert!(token.is_some());
+        assert_eq!(token.unwrap(), Token::ListStart);
+
+        let token = it.next();
+        assert!(token.is_some());
+        assert_eq!(token.unwrap(), Token::Number(2));
+
+        let token = it.next();
+        assert!(token.is_some());
+        assert_eq!(token.unwrap(), Token::ListEnd);
+
+        let token = it.next();
+        assert!(token.is_some());
+        assert_eq!(token.unwrap(), Token::ListEnd);
+
+        let token = it.next();
+        assert!(token.is_none());
     }
 }
