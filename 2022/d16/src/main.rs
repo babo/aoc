@@ -10,6 +10,7 @@ fn content() -> Option<String> {
 
 struct Vulcano<'a> {
     names: Vec<&'a str>,
+    rates: HashMap<&'a str, u32>,
 }
 
 impl<'a> Vulcano<'a> {
@@ -24,6 +25,7 @@ impl<'a> Vulcano<'a> {
 
         let mut rates: HashMap<&str, u32> = HashMap::new();
         let mut tunnel: HashMap<&str, Vec<&str>> = HashMap::new();
+        let mut routes: HashMap<(&str, &str), u32> = HashMap::new();
 
         input
             .lines()
@@ -34,29 +36,55 @@ impl<'a> Vulcano<'a> {
                 let name = line.get(6..8).unwrap();
                 let semi = line.find(';').unwrap();
                 let rate = u32::from_str_radix(line.get(23..semi).unwrap(), 10).unwrap();
-                let vpos = line.find("valve").unwrap() + 5;
-                if line.get(vpos..vpos + 1) == Some("s") {
-                    let next: Vec<_> = line.get(vpos + 1..).unwrap().split(", ").collect_vec();
+                let vp = line.find("valve").unwrap() + 5;
+                if line.get(vp..vp + 1) == Some("s") {
+                    let next: Vec<_> = line.get(vp + 2..).unwrap().split(", ").collect_vec();
+                    next.iter().for_each(|n| {
+                        routes.insert((name, n), 1);
+                        routes.insert((n, name), 1);
+                    });
                     tunnel.insert(name, next);
                 } else {
                     let mut next = Vec::<&str>::new();
-                    next.push(line.get(vpos + 1..).unwrap());
+                    next.push(line.get(vp + 1..).unwrap());
                     tunnel.insert(name, next);
                 }
                 rates.insert(name, rate);
             });
-        for (k, v) in rates.iter() {
-            println!("{k} -> {v}");
+        let mut visited = HashSet::new();
+        let mut current: Vec<usize> = Vec::new();
+        let mut next: Vec<usize> = Vec::new();
+        current.push(0);
+
+        while !current.is_empty() {
+            next.clear();
+            current.iter().for_each(|node_id| {
+                if visited.insert(*node_id) {
+                    let node = names[*node_id];
+                    for k in tunnel[node].iter() {
+                        println!("|{k}|");
+                        let pos = names.iter().position(|x| x == k).unwrap();
+                        next.push(pos);
+                    }
+                }
+            });
+
+            current.clear();
+            current.extend(next.iter());
         }
         for (k, v) in tunnel.iter() {
             println!("{k} -> {:?}", v);
         }
-        Vulcano { names }
+        Vulcano { names, rates }
     }
 }
 
 fn solution_a(input: &str) -> usize {
-    let _v = Vulcano::new(input);
+    let v = Vulcano::new(input);
+    println!("{:?}", v.names);
+    for (k, v) in v.rates.iter() {
+        println!("{k} -> {v}");
+    }
     0
 }
 
