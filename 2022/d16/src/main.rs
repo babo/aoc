@@ -1,6 +1,6 @@
-use std::fs::read_to_string;
 use std::collections::HashMap;
 use std::collections::HashSet;
+use std::fs::read_to_string;
 
 use itertools::Itertools;
 
@@ -8,39 +8,50 @@ fn content() -> Option<String> {
     read_to_string("./input.txt").ok()
 }
 
-struct Vulcano {
-
+struct Vulcano<'a> {
+    names: Vec<&'a str>,
 }
 
-impl Vulcano {
+impl<'a> Vulcano<'a> {
     // Valve YJ has flow rate=15; tunnels lead to valves OC, PE, AC
-    fn new(input: &str) -> Self {
+    fn new(input: &'a str) -> Self {
+        let names: Vec<_> = input
+            .lines()
+            .map(|x| x.trim())
+            .filter(|x| !x.is_empty())
+            .map(|line| line.get(6..8).unwrap())
+            .collect_vec();
+
         let mut rates: HashMap<&str, u32> = HashMap::new();
         let mut tunnel: HashMap<&str, Vec<&str>> = HashMap::new();
 
-        input.lines().map(|x|x.trim()).filter(|x| !x.is_empty()).for_each(|line| {
-            println!("{line}");
-            let name = line.get(6..8).unwrap();
-            let semi = line.find(';').unwrap();
-            let rate = u32::from_str_radix(line.get(23..semi).unwrap(), 10).unwrap();
-            let vpos = line.find("valve").unwrap()+5;
-            if line.get(vpos..vpos+1) == Some("s") {
-                let next: Vec<_> = line.get(vpos+1..).unwrap().split(", ").collect_vec();
-                tunnel.insert(name, next);
-            } else {
-                let mut next = Vec::<&str>::new();
-                next.push(line.get(vpos+1..).unwrap());
-                tunnel.insert(name, next);
-            }
-            rates.insert(name, rate);
-        });
+        input
+            .lines()
+            .map(|x| x.trim())
+            .filter(|x| !x.is_empty())
+            .for_each(|line| {
+                println!("{line}");
+                let name = line.get(6..8).unwrap();
+                let semi = line.find(';').unwrap();
+                let rate = u32::from_str_radix(line.get(23..semi).unwrap(), 10).unwrap();
+                let vpos = line.find("valve").unwrap() + 5;
+                if line.get(vpos..vpos + 1) == Some("s") {
+                    let next: Vec<_> = line.get(vpos + 1..).unwrap().split(", ").collect_vec();
+                    tunnel.insert(name, next);
+                } else {
+                    let mut next = Vec::<&str>::new();
+                    next.push(line.get(vpos + 1..).unwrap());
+                    tunnel.insert(name, next);
+                }
+                rates.insert(name, rate);
+            });
         for (k, v) in rates.iter() {
             println!("{k} -> {v}");
         }
         for (k, v) in tunnel.iter() {
             println!("{k} -> {:?}", v);
         }
-        Vulcano {}
+        Vulcano { names }
     }
 }
 
@@ -95,7 +106,7 @@ mod tests {
     }
 
     #[test]
-     fn test_solution_b() {
+    fn test_solution_b() {
         let c = content().unwrap();
         assert_eq!(solution_b(&c), 99999);
     }
