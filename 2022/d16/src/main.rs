@@ -94,7 +94,7 @@ impl<'a> Volcano<'a> {
         }
 
         let max_pos = current_pos + 56 * (current_time - 1) as usize;
-        let mp = max_pressure[max_pos] - 100;
+        let mp = max_pressure[max_pos] - 75;
 
         if current_pressure >= mp {
             max_pressure[max_pos] = current_pressure;
@@ -205,7 +205,7 @@ mod tests {
     #[test]
     fn test_simple_b() {
         let data = simple().unwrap();
-        assert_eq!(solution_b(&data), 99999);
+        assert_eq!(solution_b(&data), 1707);
     }
 
     #[test]
