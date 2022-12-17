@@ -98,59 +98,45 @@ impl<'a> Volcano<'a> {
         }
     }
 
-    fn take_action(&self, state: &EvalState) -> Vec<EvalState> {
+    fn take_action(&self, state: &EvalState, max_pressure: &mut [u32; 56]) -> Vec<EvalState> {
         let mut next = Vec::new();
         let current_pos = state.position;
         let current_time = state.time;
         let current_pressure = state.pressure;
-        let free_choices = state.choices[current_pos];
         let name = self.names[state.position];
 
-        if current_time <= Self::TIME_LIMIT && free_choices != 0 {
+        if current_time <= Self::TIME_LIMIT && current_pressure >= max_pressure[current_pos] {
+            max_pressure[current_pos] = current_pressure;
             let rate = *self.rates.get(&current_pos).unwrap();
             let valve_closed = (state.valves & (1 << current_pos)) == 0;
-            let mut new_choice = state.choices.clone();
+            let new_choice = state.choices.clone();
 
-            for (next_choice, next_position) in
-                self.tunnel.get(&current_pos).unwrap().iter().enumerate()
-            {
-                let mask = 1u8 << next_choice;
-                if (free_choices & mask) != 0 {
-                    let next_position = *next_position;
-                    let turned_off = free_choices & !mask;
-                    new_choice[current_pos] = turned_off;
-                    if rate != 0 && valve_closed && Volcano::TIME_LIMIT >= current_time {
-                        let valve_open = state.valves | (1 << current_pos);
-                        let increase = rate * (Volcano::TIME_LIMIT as u32 - current_time as u32);
-                        println!(
-                            "Open {name} at {current_time} with {increase} from {current_pressure}"
-                        );
-                        next.push(EvalState {
-                            valves: valve_open,
-                            time: current_time + 2,
-                            position: next_position,
-                            pressure: current_pressure + increase,
-                            choices: new_choice,
-                        });
-                    }
+            for next_position in self.tunnel.get(&current_pos).unwrap().iter() {
+                let next_position = *next_position;
+                if rate != 0 && valve_closed && Volcano::TIME_LIMIT >= current_time {
+                    let valve_open = state.valves | (1 << current_pos);
+                    let increase = rate * (Volcano::TIME_LIMIT as u32 - current_time as u32);
+                    println!(
+                        "Open {name} at {current_time} with {increase} from {current_pressure}"
+                    );
                     next.push(EvalState {
-                        valves: state.valves,
-                        time: current_time + 1,
+                        valves: valve_open,
+                        time: current_time + 2,
                         position: next_position,
-                        pressure: current_pressure,
+                        pressure: current_pressure + increase,
                         choices: new_choice,
                     });
                 }
+                next.push(EvalState {
+                    valves: state.valves,
+                    time: current_time + 1,
+                    position: next_position,
+                    pressure: current_pressure,
+                    choices: new_choice,
+                });
             }
         }
         next
-    }
-
-    fn show(&self, state: &EvalState) {
-        println!(
-            "Position: {} at {} with {}",
-            self.names[state.position as usize], state.time, state.pressure
-        );
     }
 }
 
@@ -161,25 +147,29 @@ fn solution_a(input: &str) -> usize {
     let mut future_states = Vec::new();
     let mut best_so_far = 0u32;
     current_states.push(v.initial_state());
+    let mut max_pressure = [0u32; 56];
 
     while !current_states.is_empty() {
         future_states.clear();
         current_states.iter().for_each(|state| {
             //v.show(state);
-            v.take_action(state).iter().for_each(|next_state| {
-                if next_state.pressure > best_so_far {
-                    best_so_far = next_state.pressure;
-                }
+            v.take_action(state, &mut max_pressure)
+                .iter()
+                .for_each(|next_state| {
+                    if next_state.pressure > best_so_far {
+                        best_so_far = next_state.pressure;
+                    }
 
-                if next_state.time < 3 || next_state.pressure > 100 {
-                    future_states.push(*next_state);
-                }
-            });
+                    if next_state.time < 5 || next_state.pressure > 100 {
+                        future_states.push(*next_state);
+                    }
+                });
         });
         current_states.clear();
         current_states.extend(future_states.iter());
     }
 
+    println!("{:?}", max_pressure);
     best_so_far as usize
 }
 
