@@ -13,7 +13,6 @@ struct EvalState {
     time: u8,
     position: usize,
     pressure: u32,
-    choices: [u8; 56],
 }
 
 struct Volcano<'a> {
@@ -75,66 +74,60 @@ impl<'a> Volcano<'a> {
     }
 
     fn initial_state(&self) -> EvalState {
-        let choices: Vec<_> = (0..56)
-            .map(|index| {
-                if index < self.names.len() {
-                    let mut c = 0;
-                    for i in 0..self.tunnel.get(&index).unwrap().len() {
-                        c |= 1 << i;
-                    }
-                    c
-                } else {
-                    0
-                }
-            })
-            .collect();
-        let choices: [u8; 56] = choices.try_into().unwrap();
         EvalState {
             valves: 0,
             time: 1,
             position: self.start,
             pressure: 0,
-            choices,
         }
     }
 
-    fn take_action(&self, state: &EvalState, max_pressure: &mut [u32; 56]) -> Vec<EvalState> {
+    fn take_action(&self, state: &EvalState, max_pressure: &mut [i32; 1680]) -> Vec<EvalState> {
         let mut next = Vec::new();
         let current_pos = state.position;
         let current_time = state.time;
-        let current_pressure = state.pressure;
+        let current_pressure = state.pressure as i32;
         let name = self.names[state.position];
+        let max_pos = current_pos + (current_time - 1) as usize * 56;
 
-        if current_time <= Self::TIME_LIMIT && current_pressure >= max_pressure[current_pos] {
-            max_pressure[current_pos] = current_pressure;
+        if current_time <= Self::TIME_LIMIT && current_pressure >= max_pressure[max_pos] {
+            max_pressure[max_pos] = current_pressure;
             let rate = *self.rates.get(&current_pos).unwrap();
-            let valve_closed = (state.valves & (1 << current_pos)) == 0;
-            let new_choice = state.choices.clone();
+            let mask = 1 << current_pos;
+            let valve_closed = (state.valves & mask) == 0;
 
+            println!("Arrive {name} at {current_time} from {current_pressure}");
             for next_position in self.tunnel.get(&current_pos).unwrap().iter() {
                 let next_position = *next_position;
                 if rate != 0 && valve_closed && Volcano::TIME_LIMIT >= current_time {
-                    let valve_open = state.valves | (1 << current_pos);
+                    let valve_open = state.valves | mask;
                     let increase = rate * (Volcano::TIME_LIMIT as u32 - current_time as u32);
                     println!(
-                        "Open {name} at {current_time} with {increase} from {current_pressure}"
+                        "Move from {name} to {} at {current_time} with {increase} from {current_pressure}", self.names[next_position]
                     );
                     next.push(EvalState {
                         valves: valve_open,
                         time: current_time + 2,
                         position: next_position,
-                        pressure: current_pressure + increase,
-                        choices: new_choice,
+                        pressure: current_pressure as u32 + increase,
                     });
                 }
+                println!(
+                    "Move from {name} to {} at {current_time} keeping {current_pressure}",
+                    self.names[next_position]
+                );
                 next.push(EvalState {
                     valves: state.valves,
                     time: current_time + 1,
                     position: next_position,
-                    pressure: current_pressure,
-                    choices: new_choice,
+                    pressure: current_pressure as u32,
                 });
             }
+        } else {
+            println!(
+                "Arrive {name} at {current_time} with {current_pressure} but max is {}",
+                max_pressure[current_pos]
+            );
         }
         next
     }
@@ -147,12 +140,11 @@ fn solution_a(input: &str) -> usize {
     let mut future_states = Vec::new();
     let mut best_so_far = 0u32;
     current_states.push(v.initial_state());
-    let mut max_pressure = [0u32; 56];
+    let mut max_pressure = [-1i32; 1680];
 
     while !current_states.is_empty() {
         future_states.clear();
         current_states.iter().for_each(|state| {
-            //v.show(state);
             v.take_action(state, &mut max_pressure)
                 .iter()
                 .for_each(|next_state| {
@@ -160,9 +152,7 @@ fn solution_a(input: &str) -> usize {
                         best_so_far = next_state.pressure;
                     }
 
-                    if next_state.time < 5 || next_state.pressure > 100 {
-                        future_states.push(*next_state);
-                    }
+                    future_states.push(*next_state);
                 });
         });
         current_states.clear();
