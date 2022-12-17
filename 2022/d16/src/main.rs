@@ -102,71 +102,46 @@ impl<'a> Volcano<'a> {
         let mut next = Vec::new();
         let current_pos = state.position;
         let current_time = state.time;
+        let current_pressure = state.pressure;
         let free_choices = state.choices[current_pos];
         let name = self.names[state.position];
-        let mut r = 0;
-        for (i, n) in self.names.iter().enumerate() {
-            if state.valves & (1 << i) != 0 {
-                if r == 0 {
-                    print!("Valves at {current_time} ");
-                }
-                r += self.rates.get(&i).unwrap();
-                print!("{n} ");
-            }
-        }
-        if r != 0 {
-            println!("{r} total {}", state.pressure);
-        }
+
         if current_time <= Self::TIME_LIMIT && free_choices != 0 {
-            println!("Free choices at {}: {:04b}", name, free_choices);
             let rate = *self.rates.get(&current_pos).unwrap();
-            let is_closed = (state.valves & (1 << current_pos)) == 0;
+            let valve_closed = (state.valves & (1 << current_pos)) == 0;
             let mut new_choice = state.choices.clone();
 
             for (next_choice, next_position) in
                 self.tunnel.get(&current_pos).unwrap().iter().enumerate()
             {
-                if free_choices & (1 << next_choice) != 0 {
+                let mask = 1u8 << next_choice;
+                if (free_choices & mask) != 0 {
                     let next_position = *next_position;
-                    let turned_off = free_choices & !(1 << next_choice);
+                    let turned_off = free_choices & !mask;
                     new_choice[current_pos] = turned_off;
-                    if rate > 0 && is_closed && Volcano::TIME_LIMIT >= current_time {
-                        let valves = state.valves | (1 << current_pos);
-                        let increased = rate * (Volcano::TIME_LIMIT as u32 - current_time as u32);
-
+                    if rate != 0 && valve_closed && Volcano::TIME_LIMIT >= current_time {
+                        let valve_open = state.valves | (1 << current_pos);
+                        let increase = rate * (Volcano::TIME_LIMIT as u32 - current_time as u32);
                         println!(
-                            "Moving from {} to {} at {} increase from {} with {} at rate {} for {}",
-                            name,
-                            self.names[next_position],
-                            current_time,
-                            state.pressure,
-                            increased,
-                            rate,
-                            increased / rate
+                            "Open {name} at {current_time} with {increase} from {current_pressure}"
                         );
                         next.push(EvalState {
-                            valves,
+                            valves: valve_open,
                             time: current_time + 2,
                             position: next_position,
-                            pressure: state.pressure + increased,
+                            pressure: current_pressure + increase,
                             choices: new_choice,
                         });
                     }
-                    println!(
-                        "Moving from {} to {} at {}",
-                        name, self.names[next_position], current_time
-                    );
                     next.push(EvalState {
                         valves: state.valves,
                         time: current_time + 1,
                         position: next_position,
-                        pressure: state.pressure,
+                        pressure: current_pressure,
                         choices: new_choice,
                     });
                 }
             }
-        } else {
-            println!("Over: {} {} {}", name, state.time, free_choices);
         }
         next
     }
@@ -190,19 +165,14 @@ fn solution_a(input: &str) -> usize {
     while !current_states.is_empty() {
         future_states.clear();
         current_states.iter().for_each(|state| {
-            v.show(state);
-            v.take_action(state).iter().for_each(|next| {
-                if next.pressure > best_so_far {
-                    best_so_far = next.pressure;
+            //v.show(state);
+            v.take_action(state).iter().for_each(|next_state| {
+                if next_state.pressure > best_so_far {
+                    best_so_far = next_state.pressure;
                 }
 
-                if next.choices.iter().fold(0, |prev, x| -> u8 { prev | *x }) == 0u8 {
-                    println!(
-                        "Done: {} at {} with {}",
-                        v.names[next.position], next.time, next.pressure
-                    );
-                } else {
-                    future_states.push(*next);
+                if next_state.time < 3 || next_state.pressure > 100 {
+                    future_states.push(*next_state);
                 }
             });
         });
