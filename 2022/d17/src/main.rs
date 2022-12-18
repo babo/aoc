@@ -1,5 +1,7 @@
 use std::fs::read_to_string;
 
+use itertools::Itertools;
+
 fn content() -> Option<String> {
     read_to_string("./input.txt").ok()
 }
@@ -34,9 +36,11 @@ enum Direction {
 
 struct Tetris {
     chamber: Vec<u8>,
+    height: usize,
 }
 
 impl Tetris {
+    const CHUNKS: usize = 10000;
     const SHAPES: [u16; 5] = [
         0b01111,
         0b01001110010,
@@ -48,6 +52,7 @@ impl Tetris {
     fn new() -> Self {
         Tetris {
             chamber: Vec::new(),
+            height: 0,
         }
     }
 
@@ -73,6 +78,12 @@ impl Tetris {
                 //println!("Get {p} with {m} where len is {}", self.chamber.len());
                 self.chamber.get_mut(p).map(|orig| *orig |= line as u8);
             }
+        }
+        if self.chamber.len() > Self::CHUNKS + 200 {
+            let mut saved = self.chamber.iter().skip(Self::CHUNKS).map(|c| *c).collect_vec();
+            self.height += Self::CHUNKS;
+            self.chamber.clear();
+            self.chamber.append(&mut saved);
         }
     }
 
@@ -103,14 +114,14 @@ impl Tetris {
             }
             let row = self.chamber[self.chamber.len() - m];
             let scan = line << x;
-            if row & scan as u8 != 0 {
+            if row & scan != 0 {
                 return None;
             }
         }
         Some((dx, dy))
     }
 
-    fn scene(&self, shape: Option<(usize, (i32, i32))>) {
+    fn _scene(&self, shape: Option<(usize, (i32, i32))>) {
         let pr_shape = |shp: u8, line: u8| {
             print!("|");
             for x in 0..7 {
@@ -195,7 +206,7 @@ fn simulate(input: &str, steps: usize) -> usize {
         tetris.freeze(kind, (orig_x, orig_y));
         //tetris.scene(None);
     }
-    tetris.chamber.len()
+    tetris.height + tetris.chamber.len()
 }
 
 fn solution_a(input: &str) -> usize {
@@ -203,7 +214,7 @@ fn solution_a(input: &str) -> usize {
 }
 
 fn solution_b(input: &str) -> usize {
-    simulate(input, 1000000000000)
+    simulate(input, 10000000000000)
 }
 
 fn main() {
