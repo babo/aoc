@@ -4,7 +4,7 @@ fn content() -> Option<String> {
     read_to_string("./input.txt").ok()
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 enum Direction {
     Left,
     Right,
@@ -32,7 +32,126 @@ enum Direction {
 
 */
 
-fn solution_a(input: &str) -> usize {
+struct Tetris {
+    chamber: Vec<u8>,
+}
+
+impl Tetris {
+    const SHAPES: [u16; 5] = [
+        0b01111,
+        0b01001110010,
+        0b010001000111,
+        0b01000100010001,
+        0b0110011,
+    ];
+
+    fn new() -> Self {
+        Tetris {
+            chamber: Vec::new(),
+        }
+    }
+
+    fn shape_line(kind: usize, row: usize) -> u8 {
+        assert!(row < 4);
+        ((Tetris::SHAPES[kind] >> (row << 2usize)) & 0b1111) as u8
+    }
+
+    fn freeze(&mut self, kind: usize, xy: (i32, i32)) {
+        let (orig_x, orig_y) = xy;
+        //println!("Freeze at {orig_y}");
+        for dy in 0..4 {
+            let y = orig_y + dy;
+            let m = y.abs() as usize;
+            let line = Self::shape_line(kind, dy as usize) << orig_x;
+            if line == 0 {
+                break;
+            }
+            if y >= 0 || self.chamber.is_empty() {
+                self.chamber.push(line as u8);
+            } else {
+                let p = self.chamber.len() - 1 - (m - 1);
+                //println!("Get {p} with {m} where len is {}", self.chamber.len());
+                self.chamber.get_mut(p).map(|orig| *orig |= line as u8);
+            }
+        }
+    }
+
+    fn step(&self, dir: Direction, kind: usize, xy: (i32, i32)) -> Option<(i32, i32)> {
+        let (orig_x, orig_y) = xy;
+        let (dx, dy) = match dir {
+            Direction::Left => (-1, 0),
+            Direction::Right => (1, 0),
+            Direction::Down => (0, -1),
+        };
+        if orig_x + dx < 0 {
+            return None;
+        }
+        let x = orig_x + dx;
+        for py in 0i32..4 {
+            let line = Self::shape_line(kind, py as usize);
+            if (line << x) | 127 != 127 {
+                return None;
+            }
+
+            let y = orig_y + py + dy;
+            if y >= 0 {
+                continue;
+            }
+            let m = y.abs() as usize;
+            if m > self.chamber.len() {
+                return None;
+            }
+            let row = self.chamber[self.chamber.len() - m];
+            let scan = line << x;
+            if row & scan as u8 != 0 {
+                return None;
+            }
+        }
+        Some((dx, dy))
+    }
+
+    fn scene(&self, shape: Option<(usize, (i32, i32))>) {
+        let pr_shape = |shp: u8, line: u8| {
+            print!("|");
+            for x in 0..7 {
+                let mask = 1 << x;
+                let c = if shp & mask != 0 {
+                    '@'
+                } else if line & mask != 0 {
+                    '#'
+                } else {
+                    '.'
+                };
+                print!("{c}")
+            }
+            println!("|");
+        };
+        let get_shape = |row| match shape {
+            Some((kind, (x, y))) => {
+                if row >= y && row < y + 4 {
+                    let py = row - y;
+                    Self::shape_line(kind, py as usize) << x
+                } else {
+                    0
+                }
+            }
+            None => 0,
+        };
+
+        for row in (0..8).rev() {
+            let shp = get_shape(row);
+            pr_shape(shp, 0);
+        }
+        for row in 0..self.chamber.len().min(10) {
+            let line = self.chamber[self.chamber.len() - 1 - row];
+            let shp = get_shape(-1 - (row as i32));
+            pr_shape(shp, line);
+        }
+        println!("+-------+\n");
+    }
+}
+
+fn simulate(input: &str, steps: usize) -> usize {
     let mut jet = input
         .lines()
         .map(|x| x.trim())
@@ -42,145 +161,49 @@ fn solution_a(input: &str) -> usize {
         .chars()
         .cycle();
     let mut rock = (0..5).cycle();
-    let mut top = [0i32; 7];
-    let shapes: [u16; 5] = [
-        0b01111,
-        0b01001110010,
-        0b010001000111,
-        0b01000100010001,
-        0b0110011,
-    ];
 
-    let scene = |(orig_x, orig_y), kind: usize, top: &[i32; 7]| {
-        let my = top.iter().min().unwrap();
-        for y in (*my..orig_y+4).rev() {
-            print!("|");
-            for x in 0..7 {
-                let c = if x >= orig_x && x < orig_x + 4 && y >= orig_y && y < orig_y + 4 {
-                    let (sx, sy) = (x-orig_x, y-orig_y);
-                    let p = sy*4+sx;
-                    if shapes[kind] & (1u16 << p) != 0u16 {
-                        '@'
-                    } else {
-                        '.'
-                    }
-                } else {
-                    '.'
-                };
-                print!("{}", if top[x as usize] >= y { '#' } else { c});
-            }
-            println!("|");
-        }
-        println!("+-------+\n");
-    };
+    let mut tetris = Tetris::new();
 
-    let step = |dir, (orig_x, orig_y), kind, top: &[i32; 7]| {
-        let (dx, dy) = match dir {
-            Direction::Left => (-1, 0),
-            Direction::Right => (1, 0),
-            Direction::Down => (0, -1),
-        };
-        for py in 0..4 {
-            let y = orig_y + py + dy;
-            for px in 0..4 {
-                let p = py * 4 + px;
-                if shapes[kind] & (1 << p) != 0 {
-                    let x = orig_x + px + dx;
-                    if x < 0 || x > 6 {
-                        return None;
-                    }
-                    if top[x as usize] >= y {
-                        return None;
-                    }
-                }
-            }
-        }
-        Some((dx, dy))
-    };
-
-    top[0] = 4;
-    top[1] = 5;
-    top[2] = 2;
-    top[3] = 3;
-    for kind in 1..2 {
-        let mut orig_x: i32 = 2;
-        let mut orig_y: i32 = top.iter().max().unwrap() + 4;
-
-        for _ in 0..1 {
-            match step(Direction::Right, (orig_x, orig_y), kind, &top) {
-                Some((dx, dy)) => {
-                    orig_x += dx;
-                    orig_y += dy;
-                }
-                None => (),
-            }
-        }
-        for _ in 0..9 {
-            match step(Direction::Down, (orig_x, orig_y), kind, &top) {
-                Some((_, dy)) => orig_y += dy,
-                None => (),
-            }
-        }
-
-        scene((orig_x, orig_y), kind, &top);
-
-        for px in 0..4 {
-            for py in 0..4 {
-                let p = py * 4 + px;
-                let x = orig_x + px;
-                if shapes[kind] & (1 << p) != 0 {
-                    top[x as usize] = top[x as usize].max(orig_y + py);
-                }
-            }
-        }
-        scene((orig_x, orig_y), kind, &top);
-    }
-
-    println!("Sopres");
-
-    for _cycle in 0..2022
-    {
+    for _cycle in 0..steps {
         let kind = rock.next().unwrap();
         let mut orig_x: i32 = 2;
-        let mut orig_y: i32 = top.iter().max().unwrap() + 4;
+        let mut orig_y: i32 = 3;
 
         loop {
-            //println!("SSSSSS {kind}");
-            //scene((orig_x, orig_y), kind, &top);
-
             let jet = if jet.next() == Some('<') {
                 Direction::Left
             } else {
                 Direction::Right
             };
 
-            //println!("{}", if jet == Direction::Left { '<' } else { '>' });
-            match step(jet, (orig_x, orig_y), kind, &top) {
-                Some((dx, _)) => orig_x += dx,
+            //tetris.scene(Some((kind, (orig_x, orig_y))));
+
+            match tetris.step(jet, kind, (orig_x, orig_y)) {
+                Some((dx, dy)) => {
+                    orig_x += dx;
+                    orig_y += dy;
+                }
                 None => (),
             }
-            match step(Direction::Down, (orig_x, orig_y), kind, &top) {
+            match tetris.step(Direction::Down, kind, (orig_x, orig_y)) {
                 Some((_, dy)) => orig_y += dy,
                 None => break,
             }
-            //scene((orig_x, orig_y), kind, &top);
+            //tetris.scene(Some((kind, (orig_x, orig_y))));
         }
-
-        for px in 0..4 {
-            for py in 0..4 {
-                let p = py * 4 + px;
-                let x = orig_x + px;
-                if shapes[kind] & (1 << p) != 0 {
-                    top[x as usize] = top[x as usize].max(orig_y + py);
-                }
-            }
-        }
+        //tetris.scene(Some((kind, (orig_x, orig_y))));
+        tetris.freeze(kind, (orig_x, orig_y));
+        //tetris.scene(None);
     }
-    *top.iter().max().unwrap() as usize
+    tetris.chamber.len()
 }
 
-fn solution_b(_input: &str) -> Option<usize> {
-    None
+fn solution_a(input: &str) -> usize {
+    simulate(input, 2022)
+}
+
+fn solution_b(input: &str) -> usize {
+    simulate(input, 1000000000000)
 }
 
 fn main() {
@@ -215,18 +238,18 @@ mod tests {
     #[test]
     fn test_simple_b() {
         let data = simple().unwrap();
-        assert_eq!(solution_b(&data), Some(0));
+        assert_eq!(solution_b(&data), 1514285714288);
     }
 
     #[test]
     fn test_solution_a() {
         let c = content().unwrap();
-        assert_eq!(solution_a(&c), 3201+1);
+        assert_eq!(solution_a(&c), 3171);
     }
 
     #[test]
     fn test_solution_b() {
         let c = content().unwrap();
-        assert_eq!(solution_b(&c), Some(0));
+        assert_eq!(solution_b(&c), 0);
     }
 }
