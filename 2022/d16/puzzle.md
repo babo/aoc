@@ -154,8 +154,6 @@ Work out the steps to release the most pressure in 30 minutes. *What is the most
 
 Your puzzle answer was `2250`.
 
-The first half of this puzzle is complete! It provides one gold star: \*
-
 \--- Part Two ---
 ----------
 
@@ -240,8 +238,12 @@ With the elephant helping, after 26 minutes, the best you could do would release
 
 *With you and an elephant working together for 26 minutes, what is the most pressure you could release?*
 
-Answer:
+Your puzzle answer was `3015`.
 
-Although it hasn't changed, you can still [get your puzzle input](16/input).
+Both parts of this puzzle are complete! They provide two gold stars: \*\*
 
-You can also [Shareon [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+Part+One+of+%22Proboscidea+Volcanium%22+%2D+Day+16+%2D+Advent+of+Code+2022&url=https%3A%2F%2Fadventofcode%2Ecom%2F2022%2Fday%2F16&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.
+At this point, you should [return to your Advent calendar](/2022) and try another puzzle.
+
+If you still want to see it, you can [get your puzzle input](16/input).
+
+You can also [Shareon [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+%22Proboscidea+Volcanium%22+%2D+Day+16+%2D+Advent+of+Code+2022&url=https%3A%2F%2Fadventofcode%2Ecom%2F2022%2Fday%2F16&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.
