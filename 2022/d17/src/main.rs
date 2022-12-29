@@ -80,7 +80,12 @@ impl Tetris {
             }
         }
         if self.chamber.len() > Self::CHUNKS + 200 {
-            let mut saved = self.chamber.iter().skip(Self::CHUNKS).map(|c| *c).collect_vec();
+            let mut saved = self
+                .chamber
+                .iter()
+                .skip(Self::CHUNKS)
+                .map(|c| *c)
+                .collect_vec();
             self.height += Self::CHUNKS;
             self.chamber.clear();
             self.chamber.append(&mut saved);
@@ -214,7 +219,15 @@ fn solution_a(input: &str) -> usize {
 }
 
 fn solution_b(input: &str) -> usize {
-    simulate(input, 10000000000000)
+    let n = 1000000000000;
+    let w = (n - 320) / 280;
+    let ww = (n - 320) % 280;
+
+    let a = simulate(input, 320);
+    let b = simulate(input, 600);
+    let c = simulate(input, 600 + ww);
+
+    a + w * (b - a) + c - b
 }
 
 fn main() {
@@ -262,5 +275,24 @@ mod tests {
     fn test_solution_b() {
         let c = content().unwrap();
         assert_eq!(solution_b(&c), 0);
+    }
+
+    #[test]
+    fn test_rem() {
+        let data = simple().unwrap();
+        let input = &data;
+        let n = 19370;
+        let normal = simulate(input, n);
+
+        let w = (n - 320) / 280;
+        let ww = (n - 320) % 280;
+
+        let a = simulate(input, 320);
+        let b = simulate(input, 600);
+        let c = simulate(input, 600 + ww);
+
+        println!("{a} {b} {c}");
+        println!("{w} {ww}");
+        assert_eq!(normal, a + (w - 0) * (b - a) + c - b);
     }
 }
