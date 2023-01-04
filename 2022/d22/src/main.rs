@@ -30,12 +30,12 @@ impl Maze {
             .collect_vec();
         let cols = dlines.iter().map(|x| x.len()).max().unwrap();
         let rows = dlines.len();
+        let tile = cols.max(rows) / 4;
         let mut board = Vec::new();
         dlines.iter().for_each(|line| {
             line.bytes().for_each(|c| board.push(c));
             (0..(cols - line.len())).for_each(|_| board.push(b' '));
         });
-
         let code = input.lines().find(|x| x.contains('L')).unwrap();
         let mut instruction = Vec::new();
         code.chars()
@@ -63,7 +63,59 @@ impl Maze {
             instruction,
             rows,
             cols,
-            tile: cols / 4,
+            tile,
+        }
+    }
+
+    fn normalize(&self) -> Self {
+        if self.rows < self.cols {
+            Maze {
+                rows: self.rows,
+                cols: self.cols,
+                tile: self.tile,
+                board: self.board.clone(),
+                instruction: self.instruction.clone(),
+            }
+        } else {
+            let (cols, rows, tile) = (self.rows, self.cols, self.tile);
+            let mut board = vec![b' '; tile * tile * 12];
+            // 1
+            for c in tile..2 * tile {
+                for r in 0..tile {
+                    board[r * cols + c + tile] = self.board[r * self.cols + c];
+                }
+            }
+            // 6
+            for c in 2 * tile..3 * tile {
+                for r in 0..tile {
+                    let rr = tile - 1 - r + 2 * tile;
+                    let cc = 3 * tile - 1 - c + 3 * tile;
+                    board[rr * cols + cc] = self.board[r * self.cols + c];
+                }
+            }
+            // 2, 3
+            for c in 0..tile {
+                for r in 2 * tile..4 * tile {
+                    let rr = tile + c;
+                    let cc = 4 * tile - 1 - r;
+                    board[rr * cols + cc] = self.board[r * self.cols + c];
+                }
+            }
+            // 4, 5
+            for c in tile..2 * tile {
+                for r in tile..3 * tile {
+                    let rr = r;
+                    let cc = tile + c;
+                    board[rr * cols + cc] = self.board[r * self.cols + c];
+                }
+            }
+            Maze {
+                cols,
+                rows,
+                board,
+                tile,
+                instruction: self.instruction.clone(),
+            }
         }
     }
 
@@ -128,18 +180,22 @@ impl Maze {
         }
     }
 
-    fn around(&self, row: usize, col: usize, steps: usize, heading: u8) -> (usize, usize, u8) {
-        let start = if steps != 0 { 1 } else { 0 };
-        let mut nr = row;
-        let mut nc = col;
-        let mut nh = heading;
-        let face = if row < self.tile {
+    fn face(&self, row: usize, col: usize) -> usize {
+        if row < self.tile {
             1
         } else if row < 2 * self.tile {
             2 + col / self.tile
         } else {
             3 + col / self.tile
-        };
+        }
+    }
+
+    fn around(&self, row: usize, col: usize, steps: usize, heading: u8) -> (usize, usize, u8) {
+        let start = if steps != 0 { 1 } else { 0 };
+        let mut nr = row;
+        let mut nc = col;
+        let mut nh = heading;
+        let face = self.face(row, col);
         match heading {
             0 => {
                 let cc = col + start;
@@ -254,7 +310,7 @@ impl Maze {
                     if row == 0 {
                         nr = self.tile;
                         nc = self.tile - (col - 2 * self.tile);
-                        nh = 2;
+                        nh = 1;
                     } else {
                         nr -= start;
                     }
@@ -269,7 +325,6 @@ impl Maze {
                     }
                 }
                 3 => {
-                    println!("Y {row} {}", self.tile);
                     if row <= self.tile {
                         nc = 2 * self.tile;
                         nr = col - self.tile;
@@ -292,18 +347,11 @@ impl Maze {
             d => unreachable!("What a direction! {d}"),
         }
         let (nr, nc) = (nr as usize, nc as usize);
-        println!(
-            "{:2}->{:2} {:2}->{:2} steps: {:2} heading: {heading} {nh} face: {face} {}",
-            row, nr,
-            col, nc,
-            steps,
-            self.at(nr, nc) as char
-        );
 
         match self.at(nr, nc) {
             b'#' => (row, col, heading),
             b'.' => {
-                if steps > 1 {
+                if steps > 0 {
                     self.around(nr, nc, steps - 1, nh)
                 } else {
                     (nr, nc, nh)
@@ -335,7 +383,6 @@ impl Maze {
                 Step::Right => heading = (heading + 1) % 4,
                 Step::Fwd(steps) => (r, c, heading) = self.around(r, c, *steps as usize, heading),
             };
-            println!();
             (r, c, heading)
         })
     }
@@ -348,7 +395,15 @@ fn solution_a(input: &str) -> Option<usize> {
 }
 
 fn solution_b(input: &str) -> Option<usize> {
-    let m = Maze::new(input);
+    let m = Maze::new(input).normalize();
+/*
+    for r in 0..m.rows {
+        for c in 0..m.cols {
+            print!("{}", m.board[c + r * m.cols] as char);
+        }
+        println!();
+    }
+*/
     let (r, c, f) = m.cube();
     Some((r + 1) * 1000 + 4 * (c + 1) + f as usize)
 }
