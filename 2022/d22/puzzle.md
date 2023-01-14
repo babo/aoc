@@ -65,14 +65,14 @@ It is possible for the next tile (after wrapping around) to be a *wall*; this st
 By drawing the *last facing you had* with an arrow on each tile you visit, the full path taken by the above example looks like this:
 
 ```
-        >>v#
-        .#v.
-        #.v.
-        ..v.
-...#...v..v#
->>>v...>#.>>
-..#v...#....
-...>>>>v..#.
+        >>v#    
+        .#v.    
+        #.v.    
+        ..v.    
+...#...v..v#    
+>>>v...>#.>>    
+..#v...#....    
+...>>>>v..#.    
         ...#....
         .....#..
         .#......
@@ -87,8 +87,6 @@ In the above example, the final row is `6`, the final column is `8`, and the fin
 Follow the path given in the monkeys' notes. *What is the final password?*
 
 Your puzzle answer was `27492`.
-
-The first half of this puzzle is complete! It provides one gold star: \*
 
 \--- Part Two ---
 ----------
@@ -156,14 +154,14 @@ Walls still block your path, even if they are on a different face of the cube. I
 Using the same method of drawing the *last facing you had* with an arrow on each tile you visit, the full path taken by the above example now looks like this:
 
 ```
-        >>v#
-        .#v.
-        #.v.
-        ..v.
-...#..^...v#
-.>>>>>^.#.>>
-.^#....#....
-.^........#.
+        >>v#    
+        .#v.    
+        #.v.    
+        ..v.    
+...#..^...v#    
+.>>>>>^.#.>>    
+.^#....#....    
+.^........#.    
         ...#..v.
         .....#v.
         .#v<<<<.
@@ -175,24 +173,12 @@ The final password is still calculated from your final position and facing from 
 
 Fold the map into a cube, *then* follow the path given in the monkeys' notes. *What is the final password?*
 
-Answer:
+Your puzzle answer was `78291`.
 
-Although it hasn't changed, you can still [get your puzzle input](22/input).
+Both parts of this puzzle are complete! They provide two gold stars: \*\*
 
-You can also [Shareon [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+Part+One+of+%22Monkey+Map%22+%2D+Day+22+%2D+Advent+of+Code+2022&url=https%3A%2F%2Fadventofcode%2Ecom%2F2022%2Fday%2F22&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.
+At this point, you should [return to your Advent calendar](/2022) and try another puzzle.
 
-```
-  0123456789abcdef
-0         >>v#
-1         .#v.
-2         #.v.
-3         ..v.
-4 ...#..^...v#
-5 .>>>>>^.#.>>
-6 .^#....#....
-7 .^........#.
-8         ...#..v.
-9         .....#v.
-a         .#v<<<<.
-b         ..v...#.
-```
+If you still want to see it, you can [get your puzzle input](22/input).
+
+You can also [Shareon [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+%22Monkey+Map%22+%2D+Day+22+%2D+Advent+of+Code+2022&url=https%3A%2F%2Fadventofcode%2Ecom%2F2022%2Fday%2F22&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.

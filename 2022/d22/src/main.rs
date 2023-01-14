@@ -8,7 +8,7 @@ fn content() -> Option<String> {
 
 #[derive(Debug, Clone, Copy)]
 enum Step {
-    Fwd(u32),
+    Fwd(usize),
     Left,
     Right,
 }
@@ -51,8 +51,8 @@ impl Maze {
                     None
                 }
                 n if n.is_ascii_alphanumeric() => match prev {
-                    None => n.to_digit(10),
-                    Some(p) => n.to_digit(10).map(|nd| nd + p * 10),
+                    None => n.to_digit(10).map(|nd| nd as usize),
+                    Some(p) => n.to_digit(10).map(|nd| nd as usize + p * 10),
                 },
                 _ => prev,
             })
@@ -181,147 +181,155 @@ impl Maze {
     }
 
     fn face(&self, row: usize, col: usize) -> usize {
-        if row < self.tile {
-            1
-        } else if row < 2 * self.tile {
-            2 + col / self.tile
+        if self.cols > self.rows {
+            if row < self.tile {
+                1
+            } else if row < 2 * self.tile {
+                2 + col / self.tile
+            } else {
+                3 + col / self.tile
+            }
         } else {
-            3 + col / self.tile
+            if row < self.tile && col <= self.tile && col < 2 * self.tile {
+                1
+            } else if row < self.tile && col <= 2 * self.tile {
+                6
+            } else if row > 3 * self.tile && col < self.tile {
+                2
+            } else if row < 2 * self.tile && col <= 2 * self.tile {
+                4
+            } else if row < 3 * self.tile && col < self.tile {
+                3
+            } else if row < 3 * self.tile && col < 2 * self.tile {
+                5
+            } else {
+                unreachable!("Hello");
+            }
         }
     }
 
-    fn around(&self, row: usize, col: usize, steps: usize, heading: u8) -> (usize, usize, u8) {
-        let start = if steps != 0 { 1 } else { 0 };
+    fn step(&self, row: usize, col: usize, heading: u8) -> (usize, usize, u8) {
         let mut nr = row;
         let mut nc = col;
         let mut nh = heading;
         let face = self.face(row, col);
         match heading {
-            0 => {
-                let cc = col + start;
-                match face {
-                    1 => {
-                        if cc >= 3 * self.tile {
-                            nr = 3 * self.tile - row;
-                            nc = 3 * self.tile;
-                            nh = 2;
-                        } else {
-                            nc = cc;
-                        }
+            0 => match face {
+                1 => {
+                    if col >= 3 * self.tile - 1 {
+                        nr = 3 * self.tile - row - 1;
+                        nc = 4 * self.tile - 1;
+                        nh = 2;
+                    } else {
+                        nc += 1;
                     }
-                    4 => {
-                        if cc >= 3 * self.tile {
-                            nr = 2 * self.tile;
-                            nc = 5 * self.tile - row - 1;
-                            nh = 1
-                        } else {
-                            nc = cc;
-                        }
-                    }
-                    6 => {
-                        if cc >= 4 * self.tile {
-                            nr = 3 * self.tile - row;
-                            nc = 3 * self.tile;
-                            nh = 2;
-                        } else {
-                            nc = cc;
-                        }
-                    }
-                    _ => nc = cc,
                 }
-            }
-            1 => {
-                let rr = row + start;
-                match face {
-                    1 => nr = rr,
-                    4 => nr = rr,
-                    2 => {
-                        if rr >= 2 * self.tile {
-                            nr = 3 * self.tile;
-                            nc = 3 * self.tile - col;
-                            nh = 3;
-                        } else {
-                            nr = rr;
-                        }
+                4 => {
+                    if col >= 3 * self.tile - 1 {
+                        nr = 2 * self.tile;
+                        nc = 5 * self.tile - row - 1;
+                        nh = 1
+                    } else {
+                        nc += 1;
                     }
-                    3 => {
-                        if rr >= 2 * self.tile {
-                            nc = 2 * self.tile;
-                            nr = 1 * self.tile - col;
-                            nh = 1;
-                        } else {
-                            nr = rr;
-                        }
-                    }
-                    5 => {
-                        if rr >= 3 * self.tile {
-                            nr = 2 * self.tile - 1;
-                            nc = self.tile - (col - 2 * self.tile) - 1;
-                            nh = 3;
-                        } else {
-                            nr = rr;
-                        }
-                    }
-                    6 => {
-                        if rr >= 3 * self.tile {
-                            nc = 0;
-                            nr = 2 * self.tile - (col - 3 * self.tile);
-                            nh = 1;
-                        } else {
-                            nr = rr;
-                        }
-                    }
-                    _ => unreachable!("Opps"),
                 }
-            }
+                6 => {
+                    if col >= 4 * self.tile - 1 {
+                        nr = 3 * self.tile - row - 1;
+                        nc = 3 * self.tile - 1;
+                        nh = 2;
+                    } else {
+                        nc += 1;
+                    }
+                }
+                _ => nc += 1,
+            },
+            1 => match face {
+                2 => {
+                    if row >= 2 * self.tile - 1 {
+                        nr = 3 * self.tile - 1;
+                        nc = 3 * self.tile - col - 1;
+                        nh = 3;
+                    } else {
+                        nr += 1;
+                    }
+                }
+                3 => {
+                    if row >= 2 * self.tile - 1 {
+                        nc = 2 * self.tile;
+                        nr = 4 * self.tile - col - 1;
+                        nh = 0;
+                    } else {
+                        nr += 1;
+                    }
+                }
+                5 => {
+                    if row >= 3 * self.tile - 1 {
+                        nr = 2 * self.tile - 1;
+                        nc = 3 * self.tile - col - 1;
+                        nh = 3;
+                    } else {
+                        nr += 1;
+                    }
+                }
+                6 => {
+                    if row >= 3 * self.tile - 1 {
+                        nc = 0;
+                        nr = 5 * self.tile - col - 1;
+                        nh = 0;
+                    } else {
+                        nr += 1;
+                    }
+                }
+                _ => nr += 1,
+            },
             2 => match face {
                 1 => {
-                    let cc = col - start;
-                    if cc <= 2 * self.tile {
+                    if col <= 2 * self.tile {
                         nr = self.tile;
                         nc = self.tile + row;
                         nh = 1;
                     } else {
-                        nc = cc;
+                        nc -= 1;
                     }
                 }
                 2 => {
                     if col == 0 {
-                        nr = 3 * self.tile;
-                        nc = 4 * self.tile - (row - self.tile);
+                        nr = 3 * self.tile - 1;
+                        nc = 5 * self.tile - row - 1;
                         nh = 3;
                     } else {
-                        nc -= start;
+                        nc -= 1;
                     }
                 }
                 5 => {
                     if col <= 2 * self.tile {
-                        nr = 2 * self.tile;
-                        nc = self.tile + 3 * self.tile - row;
+                        nr = 2 * self.tile - 1;
+                        nc = 4 * self.tile - row - 1;
                         nh = 3;
                     } else {
-                        nc -= start;
+                        nc -= 1;
                     }
                 }
-                _ => nc -= start,
+                _ => nc -= 1,
             },
             3 => match face {
                 1 => {
                     if row == 0 {
                         nr = self.tile;
-                        nc = self.tile - (col - 2 * self.tile);
+                        nc = 3 * self.tile - col - 1;
                         nh = 1;
                     } else {
-                        nr -= start;
+                        nr -= 1;
                     }
                 }
                 2 => {
                     if row <= self.tile {
                         nr = 0;
-                        nc = 3 * self.tile - col;
+                        nc = 3 * self.tile - col - 1;
                         nh = 1;
                     } else {
-                        nr -= start;
+                        nr -= 1;
                     }
                 }
                 3 => {
@@ -330,28 +338,33 @@ impl Maze {
                         nr = col - self.tile;
                         nh = 0;
                     } else {
-                        nr -= start;
+                        nr -= 1;
                     }
                 }
                 6 => {
                     if row <= 2 * self.tile {
-                        nc = 3 * self.tile;
-                        nr = 2 * self.tile - (col - 3 * self.tile);
+                        nc = 3 * self.tile - 1;
+                        nr = 5 * self.tile - col - 1;
                         nh = 2;
                     } else {
-                        nr -= start;
+                        nr -= 1;
                     }
                 }
-                _ => nr -= start,
+                _ => nr -= 1,
             },
             d => unreachable!("What a direction! {d}"),
         }
-        let (nr, nc) = (nr as usize, nc as usize);
+        (nr, nc, nh)
+    }
+
+    fn around(&self, row: usize, col: usize, steps: usize, heading: u8) -> (usize, usize, u8) {
+        let (nr, nc, nh) = self.step(row, col, heading);
 
         match self.at(nr, nc) {
             b'#' => (row, col, heading),
             b'.' => {
                 if steps > 0 {
+                    println!("{nr} {nc} {heading}");
                     self.around(nr, nc, steps - 1, nh)
                 } else {
                     (nr, nc, nh)
@@ -364,26 +377,29 @@ impl Maze {
     fn walk(&self) -> (usize, usize, u8) {
         let (r, c) = self.forward(0, 0, 0, 0);
         self.instruction.iter().fold((r, c, 0), |prev, next| {
-            let (mut r, mut c, mut heading) = prev;
+            let (r, c, heading) = prev;
             match next {
-                Step::Left => heading = if heading == 0 { 3 } else { heading - 1 },
-                Step::Right => heading = (heading + 1) % 4,
-                Step::Fwd(steps) => (r, c) = self.forward(r, c, *steps as usize, heading),
-            };
-            (r, c, heading)
+                Step::Right => (r, c, (heading + 1) % 4),
+                Step::Left => (r, c, if heading == 0 { 3 } else { heading - 1 }),
+                Step::Fwd(steps) => {
+                    let (r, c) = self.forward(r, c, *steps, heading);
+                    (r, c, heading)
+                }
+            }
         })
     }
 
     fn cube(&self) -> (usize, usize, u8) {
         let (r, c) = (0, self.tile * 2);
         self.instruction.iter().fold((r, c, 0), |prev, next| {
-            let (mut r, mut c, mut heading) = prev;
+            let (r, c, heading) = prev;
+            println!("{r} {c} {heading}");
+
             match next {
-                Step::Left => heading = if heading == 0 { 3 } else { heading - 1 },
-                Step::Right => heading = (heading + 1) % 4,
-                Step::Fwd(steps) => (r, c, heading) = self.around(r, c, *steps as usize, heading),
-            };
-            (r, c, heading)
+                Step::Right => (r, c, (heading + 1) % 4),
+                Step::Left => (r, c, if heading == 0 { 3 } else { heading - 1 }),
+                Step::Fwd(steps) => self.around(r, c, *steps - 1, heading),
+            }
         })
     }
 }
@@ -395,17 +411,18 @@ fn solution_a(input: &str) -> Option<usize> {
 }
 
 fn solution_b(input: &str) -> Option<usize> {
-    let m = Maze::new(input).normalize();
-/*
-    for r in 0..m.rows {
-        for c in 0..m.cols {
-            print!("{}", m.board[c + r * m.cols] as char);
-        }
-        println!();
-    }
-*/
+    let o = Maze::new(input);
+    let m = o.normalize();
+
     let (r, c, f) = m.cube();
-    Some((r + 1) * 1000 + 4 * (c + 1) + f as usize)
+    println!("{r} {c} {f}");
+    if o.rows < o.cols {
+        Some((r + 1) * 1000 + 4 * (c + 1) + f as usize)
+    } else {
+        println!("{r} {c} {f} {}", m.tile);
+        let (rr, cc, ff) = (r, c - m.tile, f as usize);
+        Some((rr + 1) * 1000 + 4 * (cc + 1) + ff)
+    }
 }
 
 fn main() {
@@ -453,5 +470,104 @@ mod tests {
     fn test_solution_b() {
         let c = content().unwrap();
         assert_eq!(solution_b(&c), Some(0));
+    }
+
+    fn setup_mini() -> Maze {
+        let board = (0..(12 * 16))
+            .map(|i| {
+                let r = i / 16;
+                let c = i % 16;
+                match (r / 4, c / 4) {
+                    (0, 2) => b'.',
+                    (1, 0) => b'.',
+                    (1, 1) => b'.',
+                    (1, 2) => b'.',
+                    (2, 2) => b'.',
+                    (2, 3) => b'.',
+                    _ => b' ',
+                }
+            })
+            .collect_vec();
+        let instruction = vec![Step::Fwd(1); 1];
+        Maze {
+            rows: 12,
+            cols: 16,
+            tile: 4,
+            board,
+            instruction,
+        }
+    }
+
+    #[test]
+    fn test_steps() {
+        let m = setup_mini();
+
+        assert_eq!(m.step(0, 11, 0), (11, 15, 2));
+        assert_eq!(m.step(3, 11, 0), (8, 15, 2));
+        assert_eq!(m.step(4, 11, 0), (8, 15, 1));
+        assert_eq!(m.step(7, 11, 0), (8, 12, 1));
+        assert_eq!(m.step(8, 15, 0), (3, 11, 2));
+        assert_eq!(m.step(11, 15, 0), (0, 11, 2));
+
+        assert_eq!(m.step(7, 0, 1), (11, 11, 3));
+        assert_eq!(m.step(7, 3, 1), (11, 8, 3));
+        assert_eq!(m.step(7, 4, 1), (11, 8, 0));
+        assert_eq!(m.step(7, 7, 1), (8, 8, 0));
+        assert_eq!(m.step(11, 8, 1), (7, 3, 3));
+        assert_eq!(m.step(11, 11, 1), (7, 0, 3));
+        assert_eq!(m.step(11, 12, 1), (7, 0, 0));
+        assert_eq!(m.step(11, 15, 1), (4, 0, 0));
+
+        assert_eq!(m.step(0, 8, 2), (4, 4, 1));
+        assert_eq!(m.step(3, 8, 2), (4, 7, 1));
+        assert_eq!(m.step(4, 0, 2), (11, 15, 3));
+        assert_eq!(m.step(7, 0, 2), (11, 12, 3));
+        assert_eq!(m.step(8, 8, 2), (7, 7, 3));
+        assert_eq!(m.step(11, 8, 2), (7, 4, 3));
+
+        assert_eq!(m.step(4, 0, 3), (0, 11, 1));
+        assert_eq!(m.step(4, 3, 3), (0, 8, 1));
+        assert_eq!(m.step(4, 4, 3), (0, 8, 0));
+        assert_eq!(m.step(4, 7, 3), (3, 8, 0));
+        assert_eq!(m.step(0, 8, 3), (4, 3, 1));
+        assert_eq!(m.step(0, 11, 3), (4, 0, 1));
+        assert_eq!(m.step(8, 12, 3), (7, 11, 2));
+        assert_eq!(m.step(8, 15, 3), (4, 11, 2));
+    }
+
+    #[test]
+    fn test_faces() {
+        let m = setup_mini();
+
+        assert_eq!(m.face(8, 15), 6);
+        assert_eq!(m.face(0, 11), 1);
+        assert_eq!(m.face(0, 8), 1);
+        assert_eq!(m.face(3, 8), 1);
+        assert_eq!(m.face(3, 11), 1);
+
+        assert_eq!(m.face(4, 0), 2);
+        assert_eq!(m.face(4, 3), 2);
+        assert_eq!(m.face(7, 0), 2);
+        assert_eq!(m.face(7, 3), 2);
+
+        assert_eq!(m.face(4, 4), 3);
+        assert_eq!(m.face(4, 7), 3);
+        assert_eq!(m.face(7, 4), 3);
+        assert_eq!(m.face(7, 7), 3);
+
+        assert_eq!(m.face(4, 8), 4);
+        assert_eq!(m.face(4, 11), 4);
+        assert_eq!(m.face(7, 8), 4);
+        assert_eq!(m.face(7, 11), 4);
+
+        assert_eq!(m.face(8, 8), 5);
+        assert_eq!(m.face(8, 11), 5);
+        assert_eq!(m.face(11, 8), 5);
+        assert_eq!(m.face(11, 11), 5);
+
+        assert_eq!(m.face(8, 12), 6);
+        assert_eq!(m.face(8, 15), 6);
+        assert_eq!(m.face(11, 12), 6);
+        assert_eq!(m.face(11, 15), 6);
     }
 }
