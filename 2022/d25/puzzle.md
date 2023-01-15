@@ -1,3 +1,5 @@
+article \*[title]{border-bottom:1px dotted #ffff66;}
+
 \--- Day 25: Full of Hot Air ---
 ----------
 
@@ -108,8 +110,6 @@ The Elves are starting to get cold. *What SNAFU number do you supply to Bob's co
 
 Your puzzle answer was `2=2-1-010==-0-1-=--2`.
 
-The first half of this puzzle is complete! It provides one gold star: \*
-
 \--- Part Two ---
 ----------
 
@@ -121,8 +121,12 @@ As you do, a very young Elf - one you recognize from the expedition team - appro
 
 Only *49 stars* to go.
 
-You don't have enough stars to fill the blender, though. You need 9 more.
+If you like, you can .
 
-Although it hasn't changed, you can still [get your puzzle input](25/input).
+Both parts of this puzzle are complete! They provide two gold stars: \*\*
 
-You can [Shareon [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+Part+One+of+%22Full+of+Hot+Air%22+%2D+Day+25+%2D+Advent+of+Code+2022&url=https%3A%2F%2Fadventofcode%2Ecom%2F2022%2Fday%2F25&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.
+At this point, all that is left is for you to [admire your Advent calendar](/2022).
+
+If you still want to see it, you can [get your puzzle input](25/input).
+
+You can also [Shareon [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+%22Full+of+Hot+Air%22+%2D+Day+25+%2D+Advent+of+Code+2022&url=https%3A%2F%2Fadventofcode%2Ecom%2F2022%2Fday%2F25&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.

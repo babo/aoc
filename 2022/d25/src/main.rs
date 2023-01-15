@@ -56,7 +56,10 @@ impl Snafu {
         }
         let fiver: String = res.iter().rev().collect();
 
-        Snafu { fiver, decimal: num }
+        Snafu {
+            fiver,
+            decimal: num,
+        }
     }
 }
 
@@ -115,7 +118,10 @@ mod tests {
     #[test]
     fn test_solution_a() {
         let c = content().unwrap();
-        assert_eq!(solution_a(&c).map(|x| x == "2=2-1-010==-0-1-=--2"), Some(true));
+        assert_eq!(
+            solution_a(&c).map(|x| x == "2=2-1-010==-0-1-=--2"),
+            Some(true)
+        );
     }
 
     #[test]
