@@ -40,6 +40,7 @@ struct Tetris {
 }
 
 impl Tetris {
+    const PART_2: usize = 1000000000000usize;
     const CHUNKS: usize = 10000;
     const SHAPES: [u16; 5] = [
         0b01111,
@@ -167,7 +168,103 @@ impl Tetris {
     }
 }
 
-fn simulate(input: &str, steps: usize) -> usize {
+use std::iter::Cycle;
+use std::ops::Range;
+use std::str::Chars;
+
+struct Jet<'a> {
+    jet: Cycle<Chars<'a>>,
+    rock: Cycle<Range<usize>>,
+    num_actions: usize,
+}
+
+impl<'a> Jet<'a> {
+    fn new(input: &'a str) -> Self {
+        let jet = input
+            .lines()
+            .map(|x| x.trim())
+            .filter(|x| !x.is_empty())
+            .nth(0)
+            .unwrap()
+            .chars()
+            .cycle();
+        let rock = (0usize..5).cycle();
+        let num_actions = input.chars().filter(|c| *c == '<' || *c == '>').count();
+
+        Jet {
+            jet,
+            rock,
+            num_actions,
+        }
+    }
+}
+
+fn cyclist(input: &str, steps: usize, total: usize, grmax: usize) -> usize {
+    let mut env = Jet::new(input);
+    let mut tetris = Tetris::new();
+    let mut i = 0usize;
+
+    let mut prev_h = 0;
+    let mut prev_r = 0;
+    let mut growth = Vec::new();
+    let mut enough = steps;
+    for num_rocks in 0..steps {
+        if num_rocks >= enough {
+            break;
+        }
+        let kind = env.rock.next().unwrap();
+        let mut orig_x: i32 = 2;
+        let mut orig_y: i32 = 3;
+
+        loop {
+            let jet = if env.jet.next() == Some('<') {
+                Direction::Left
+            } else {
+                Direction::Right
+            };
+            i += 1;
+            if i % env.num_actions == 0 {
+                let height = tetris.height + tetris.chamber.len();
+                println!(
+                    "rotate {}: {} {}",
+                    i / env.num_actions,
+                    height - prev_h,
+                    num_rocks - prev_r
+                );
+                growth.push((height - prev_h, num_rocks - prev_r));
+                prev_r = num_rocks;
+                prev_h = height;
+                if growth.len() == grmax {
+                    let nr = growth.iter().fold(0, |prev, x| prev + x.1);
+                    let rem = total - nr;
+                    enough = num_rocks + rem % growth[grmax-1].1;
+                }
+            }
+
+            match tetris.step(jet, kind, (orig_x, orig_y)) {
+                Some((dx, dy)) => {
+                    orig_x += dx;
+                    orig_y += dy;
+                }
+                None => (),
+            }
+            match tetris.step(Direction::Down, kind, (orig_x, orig_y)) {
+                Some((_, dy)) => orig_y += dy,
+                None => break,
+            }
+        }
+
+        tetris.freeze(kind, (orig_x, orig_y));
+    }
+
+    let nr = growth.iter().fold(0, |prev, x| prev + x.1);
+    let rem = total - nr;
+    let n = rem / growth[grmax-1].1;
+
+    tetris.height + tetris.chamber.len() + growth[grmax-1].0 * n
+}
+
+fn simulate(input: &str, steps: usize, report: Option<usize>) -> usize {
     let mut jet = input
         .lines()
         .map(|x| x.trim())
@@ -180,7 +277,8 @@ fn simulate(input: &str, steps: usize) -> usize {
 
     let mut tetris = Tetris::new();
 
-    for _cycle in 0..steps {
+    let mut prev = 0;
+    for cycle in 0..steps {
         let kind = rock.next().unwrap();
         let mut orig_x: i32 = 2;
         let mut orig_y: i32 = 3;
@@ -210,24 +308,23 @@ fn simulate(input: &str, steps: usize) -> usize {
         //tetris.scene(Some((kind, (orig_x, orig_y))));
         tetris.freeze(kind, (orig_x, orig_y));
         //tetris.scene(None);
+        report.map(|x| {
+            if cycle % x == 0 {
+                let h = tetris.height + tetris.chamber.len();
+                println!("{cycle}: {}", h - prev);
+                prev = h;
+            }
+        });
     }
     tetris.height + tetris.chamber.len()
 }
 
 fn solution_a(input: &str) -> usize {
-    simulate(input, 2022)
+    simulate(input, 2022, None)
 }
 
 fn solution_b(input: &str) -> usize {
-    let n = 1000000000000;
-    let w = (n - 320) / 280;
-    let ww = (n - 320) % 280;
-
-    let a = simulate(input, 320);
-    let b = simulate(input, 600);
-    let c = simulate(input, 600 + ww);
-
-    a + w * (b - a) + c - b
+    cyclist(input, 60000, Tetris::PART_2, 4)
 }
 
 fn main() {
@@ -262,7 +359,8 @@ mod tests {
     #[test]
     fn test_simple_b() {
         let data = simple().unwrap();
-        assert_eq!(solution_b(&data), 1514285714288);
+        assert_eq!(cyclist(&data, 60000, Tetris::PART_2, 8), 1514285714288);
+        //assert_eq!(solution_b(&data), 1514285714288);
     }
 
     #[test]
@@ -274,7 +372,7 @@ mod tests {
     #[test]
     fn test_solution_b() {
         let c = content().unwrap();
-        assert_eq!(solution_b(&c), 0);
+        assert_eq!(solution_b(&c), 1586627906921);
     }
 
     #[test]
@@ -282,17 +380,24 @@ mod tests {
         let data = simple().unwrap();
         let input = &data;
         let n = 19370;
-        let normal = simulate(input, n);
+        let normal = simulate(input, n, None);
 
         let w = (n - 320) / 280;
         let ww = (n - 320) % 280;
 
-        let a = simulate(input, 320);
-        let b = simulate(input, 600);
-        let c = simulate(input, 600 + ww);
+        let a = simulate(input, 320, None);
+        let b = simulate(input, 600, None);
+        let c = simulate(input, 600 + ww, None);
 
-        println!("{a} {b} {c}");
-        println!("{w} {ww}");
         assert_eq!(normal, a + (w - 0) * (b - a) + c - b);
+    }
+
+    #[test]
+    fn test_cyclist() {
+        let data = content().unwrap();
+        let input = &data;
+        let n = 7497659;
+        let correct = simulate(input, n, None);
+        assert_eq!(cyclist(input, 60000, n, 4), correct);
     }
 }

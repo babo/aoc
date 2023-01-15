@@ -351,8 +351,6 @@ To prove to the elephants your simulation is accurate, they want to know how tal
 
 Your puzzle answer was `3171`.
 
-The first half of this puzzle is complete! It provides one gold star: \*
-
 \--- Part Two ---
 ----------
 
@@ -362,8 +360,12 @@ In the example above, the tower would be `*1514285714288*` units tall!
 
 *How tall will the tower be after `1000000000000` rocks have stopped?*
 
-Answer:
+Your puzzle answer was `1586627906921`.
 
-Although it hasn't changed, you can still [get your puzzle input](17/input).
+Both parts of this puzzle are complete! They provide two gold stars: \*\*
 
-You can also [Shareon [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+Part+One+of+%22Pyroclastic+Flow%22+%2D+Day+17+%2D+Advent+of+Code+2022&url=https%3A%2F%2Fadventofcode%2Ecom%2F2022%2Fday%2F17&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.
+At this point, you should [return to your Advent calendar](/2022) and try another puzzle.
+
+If you still want to see it, you can [get your puzzle input](17/input).
+
+You can also [Shareon [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+%22Pyroclastic+Flow%22+%2D+Day+17+%2D+Advent+of+Code+2022&url=https%3A%2F%2Fadventofcode%2Ecom%2F2022%2Fday%2F17&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.
