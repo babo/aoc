@@ -1,3 +1,5 @@
+article \*[title]{border-bottom:1px dotted #ffff66;}
+
 \--- Day 11: Monkey in the Middle ---
 ----------
 
@@ -235,8 +237,6 @@ Figure out which monkeys to chase by counting how many items they inspect over 2
 
 Your puzzle answer was `78678`.
 
-The first half of this puzzle is complete! It provides one gold star: \*
-
 \--- Part Two ---
 ----------
 
@@ -327,8 +327,12 @@ After 10000 rounds, the two most active monkeys inspected items 52166 and 52013 
 
 Worry levels are no longer divided by three after each item is inspected; you'll need to find another way to keep your worry levels manageable. Starting again from the initial state in your puzzle input, *what is the level of monkey business after 10000 rounds?*
 
-Answer:
+Your puzzle answer was `15333249714`.
 
-Although it hasn't changed, you can still [get your puzzle input](11/input).
+Both parts of this puzzle are complete! They provide two gold stars: \*\*
 
-You can also [Shareon [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+Part+One+of+%22Monkey+in+the+Middle%22+%2D+Day+11+%2D+Advent+of+Code+2022&url=https%3A%2F%2Fadventofcode%2Ecom%2F2022%2Fday%2F11&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.
+At this point, all that is left is for you to [admire your Advent calendar](/2022).
+
+If you still want to see it, you can [get your puzzle input](11/input).
+
+You can also [Shareon [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+%22Monkey+in+the+Middle%22+%2D+Day+11+%2D+Advent+of+Code+2022&url=https%3A%2F%2Fadventofcode%2Ecom%2F2022%2Fday%2F11&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.

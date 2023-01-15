@@ -1,3 +1,5 @@
+article \*[title]{border-bottom:1px dotted #ffff66;}
+
 \--- Day 9: Rope Bridge ---
 ----------
 
@@ -266,8 +268,6 @@ So, there are `*13*` positions the tail visited at least once.
 Simulate your complete hypothetical series of motions. *How many positions does the tail of the rope visit at least once?*
 
 Your puzzle answer was `6044`.
-
-The first half of this puzzle is complete! It provides one gold star: \*
 
 \--- Part Two ---
 ----------
@@ -717,8 +717,12 @@ Now, the tail (`9`) visits `*36*` positions (including `s`) at least once:
 
 Simulate your complete series of motions on a larger rope with ten knots. *How many positions does the tail of the rope visit at least once?*
 
-Answer:
+Your puzzle answer was `2384`.
 
-Although it hasn't changed, you can still [get your puzzle input](9/input).
+Both parts of this puzzle are complete! They provide two gold stars: \*\*
 
-You can also [Shareon [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+Part+One+of+%22Rope+Bridge%22+%2D+Day+9+%2D+Advent+of+Code+2022&url=https%3A%2F%2Fadventofcode%2Ecom%2F2022%2Fday%2F9&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.
+At this point, all that is left is for you to [admire your Advent calendar](/2022).
+
+If you still want to see it, you can [get your puzzle input](9/input).
+
+You can also [Shareon [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+%22Rope+Bridge%22+%2D+Day+9+%2D+Advent+of+Code+2022&url=https%3A%2F%2Fadventofcode%2Ecom%2F2022%2Fday%2F9&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.

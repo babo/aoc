@@ -1,3 +1,5 @@
+article \*[title]{border-bottom:1px dotted #ffff66;}
+
 \--- Day 14: Regolith Reservoir ---
 ----------
 
@@ -197,7 +199,7 @@ Your puzzle answer was `26686`.
 
 Both parts of this puzzle are complete! They provide two gold stars: \*\*
 
-At this point, you should [return to your Advent calendar](/2022) and try another puzzle.
+At this point, all that is left is for you to [admire your Advent calendar](/2022).
 
 If you still want to see it, you can [get your puzzle input](14/input).
 

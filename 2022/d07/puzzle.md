@@ -1,3 +1,5 @@
+article \*[title]{border-bottom:1px dotted #ffff66;}
+
 \--- Day 7: No Space Left On Device ---
 ----------
 
@@ -92,8 +94,6 @@ Find all of the directories with a total size of at most 100000. *What is the su
 
 Your puzzle answer was `1583951`.
 
-The first half of this puzzle is complete! It provides one gold star: \*
-
 \--- Part Two ---
 ----------
 
@@ -114,8 +114,12 @@ Directories `e` and `a` are both too small; deleting them would not free up enou
 
 Find the smallest directory that, if deleted, would free up enough space on the filesystem to run the update. *What is the total size of that directory?*
 
-Answer:
+Your puzzle answer was `214171`.
 
-Although it hasn't changed, you can still [get your puzzle input](7/input).
+Both parts of this puzzle are complete! They provide two gold stars: \*\*
 
-You can also [Shareon [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+Part+One+of+%22No+Space+Left+On+Device%22+%2D+Day+7+%2D+Advent+of+Code+2022&url=https%3A%2F%2Fadventofcode%2Ecom%2F2022%2Fday%2F7&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.
+At this point, all that is left is for you to [admire your Advent calendar](/2022).
+
+If you still want to see it, you can [get your puzzle input](7/input).
+
+You can also [Shareon [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+%22No+Space+Left+On+Device%22+%2D+Day+7+%2D+Advent+of+Code+2022&url=https%3A%2F%2Fadventofcode%2Ecom%2F2022%2Fday%2F7&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.
