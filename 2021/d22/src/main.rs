@@ -1,4 +1,5 @@
 use std::fs::read_to_string;
+use std::collections::HashSet;
 
 fn content() -> Option<String> {
     read_to_string("./input.txt").ok()
@@ -143,6 +144,33 @@ fn count_on(cuboids: &Vec<Cuboid>, prev: usize, is_add: bool) -> usize {
         println!("{}+{}-{} = {}", prev, minus, current, rtv);
         prev + minus - current
     }
+}
+
+fn solution(input: &str, full_size: bool) -> Option<usize> {
+    let count = read_input(input, full_size)
+        .iter()
+        .fold(HashSet::new(), |mut hm, cub| {
+            for x in cub.x1..=cub.x2 {
+                for y in cub.y1..=cub.y2 {
+                    for z in cub.z1..=cub.z2 {
+                        let key = (x, y, z);
+                        if cub.is_on {
+                            if !hm.contains(&key) {
+                                hm.insert(key);
+                            }
+                        } else {
+                            if hm.contains(&key) {
+                                hm.remove(&key);
+                            }
+                        }
+                    }
+                }
+            }
+
+            hm
+        })
+        .len();
+    Some(count)
 }
 
 fn solution_a(input: &str) -> Option<usize> {

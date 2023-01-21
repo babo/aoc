@@ -80,28 +80,32 @@ impl Cuboid {
 fn intersect_axis(points: &Vec<(i64, usize)>, index: usize) -> HashSet<usize> {
     let mut state = 0;
     let mut intersect = HashSet::new();
+    let mut limit = None;
     points.iter().for_each(|n| {
         let current = n.1;
-        match state {
-            0 => {
-                if n.1 == index {
-                    state = 1;
-                } else {
-                    if intersect.contains(&current) {
-                        intersect.remove(&current);
-                    } else {
-                        intersect.insert(current);
-                    }
-                }
-            }
-            1 => {
-                if n.1 == index {
-                    state = 2;
+        if state == 0 {
+            if limit.map_or(false, |l| n.0 > l) == true {
+                state = 1;
+                limit = None;
+            } else if n.1 == index {
+                limit = Some(n.0);
+            } else {
+                if intersect.contains(&current) {
+                    intersect.remove(&current);
                 } else {
                     intersect.insert(current);
                 }
             }
-            _ => (),
+        }
+        if state == 1 {
+            if limit.map_or(false, |l| n.0 > l) == true {
+                state = 2;
+                limit = None;
+            } else if limit.is_none() && n.1 == index {
+                limit = Some(n.0);
+            } else {
+                intersect.insert(current);
+            }
         }
     });
     intersect
@@ -139,29 +143,35 @@ fn count_on(cuboids: &Vec<Cuboid>) -> usize {
             .intersection(&intersect_z)
             .map(|x| *x)
             .collect();
-        if !next.is_on {
-            current.pop();
-        }
 
         intersect.iter().for_each(|other| {
             let other = current[*other];
-            let is_on = !other.is_on;
-            let x1 = other.x1.max(next.x1);
-            let x2 = other.x2.min(next.x2);
-            let y1 = other.y1.max(next.y1);
-            let y2 = other.y2.min(next.y2);
-            let z1 = other.z1.max(next.z1);
-            let z2 = other.z2.min(next.z2);
-            current.push(Cuboid {
-                is_on,
-                x1,
-                x2,
-                y1,
-                y2,
-                z1,
-                z2,
-            });
+            if next.is_on || other.is_on {
+                let is_on = !other.is_on;
+                let x1 = other.x1.max(next.x1);
+                let x2 = other.x2.min(next.x2);
+                let y1 = other.y1.max(next.y1);
+                let y2 = other.y2.min(next.y2);
+                let z1 = other.z1.max(next.z1);
+                let z2 = other.z2.min(next.z2);
+                let cube = Cuboid {
+                    is_on,
+                    x1,
+                    x2,
+                    y1,
+                    y2,
+                    z1,
+                    z2,
+                };
+                if cube.volume() > 0 {
+                    current.push(cube);
+                }
+            }
         });
+
+        if !next.is_on {
+            current.remove(index);
+        }
     });
 
     current.iter().fold(0, |prev, c| {
@@ -272,28 +282,28 @@ mod tests {
     #[test]
     fn test_volume() {
         /*
-                let input = "on x=-20..20,y=-30..30,z=-1..1";
-                assert_eq!(solution_a(&input), 4800);
+        let input = "on x=-20..20,y=-30..30,z=-1..1";
+        assert_eq!(solution_a(&input), 4800);
 
-                let input = "on x=-20..20,y=-30..30,z=-1..1
+        let input = "on x=-20..20,y=-30..30,z=-1..1
                 on x=-10..10,y=-20..20,z=-1..1";
-                assert_eq!(solution_a(&input), 4800);
+        assert_eq!(solution_a(&input), 4800);
 
-                let input = "on x=-20..20,y=-30..30,z=-1..1
+        let input = "on x=-20..20,y=-30..30,z=-1..1
                 off x=-10..10,y=-40..40,z=-1..1";
-                assert_eq!(solution_a(&input), 2400);
+        assert_eq!(solution_a(&input), 2400);
 
-                let input = "on x=-20..20,y=-30..30,z=-1..1
+        let input = "on x=-20..20,y=-30..30,z=-1..1
                 off x=-10..10,y=-40..40,z=-1..1
                 on x=-20..20,y=-30..30,z=-1..1";
-                assert_eq!(solution_a(&input), 4800);
-
-                let input = "on x=-20..20,y=-30..30,z=-1..1
+        assert_eq!(solution_a(&input), 4800);
+*/
+        let input = "on x=-20..20,y=-30..30,z=-1..1
                 off x=-10..10,y=-40..40,z=-1..1
                 on x=-20..20,y=-30..30,z=-1..1
                 off x=-10..10,y=-30..40,z=-1..1";
-                assert_eq!(solution_a(&input), 2400);
-        */
+        assert_eq!(solution_a(&input), 2400);
+
         let input = "on x=-20..20,y=-30..30,z=-1..1
         off x=-10..10,y=-40..40,z=-1..1
         on x=-20..20,y=-30..30,z=-1..1
