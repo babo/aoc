@@ -77,100 +77,184 @@ impl Cuboid {
     }
 }
 
-fn intersect_axis(points: &Vec<(i64, usize)>, index: usize) -> HashSet<usize> {
+fn intersect_axis(
+    points: &Vec<(i64, usize, bool)>,
+    mini: i64,
+    maxi: i64,
+) -> (HashSet<usize>, HashSet<usize>, HashSet<usize>) {
     let mut state = 0;
-    let mut intersect = HashSet::new();
-    let mut limit = None;
-    points.iter().for_each(|n| {
-        let current = n.1;
+    let mut outside = HashSet::new();
+    let mut mid = HashSet::new();
+    let mut overlap = HashSet::new();
+    let mut inside = HashSet::new();
+    points.iter().for_each(|(pos, index, max)| {
         if state == 0 {
-            if limit.map_or(false, |l| n.0 > l) == true {
+            if *pos > mini {
                 state = 1;
-                limit = None;
-            } else if n.1 == index {
-                limit = Some(n.0);
             } else {
-                if intersect.contains(&current) {
-                    intersect.remove(&current);
+                if *max {
+                    outside.remove(index);
                 } else {
-                    intersect.insert(current);
+                    outside.insert(*index);
                 }
             }
         }
         if state == 1 {
-            if limit.map_or(false, |l| n.0 > l) == true {
+            if *pos > maxi {
                 state = 2;
-                limit = None;
-            } else if limit.is_none() && n.1 == index {
-                limit = Some(n.0);
             } else {
-                intersect.insert(current);
+                if *max {
+                    if outside.contains(index) {
+                        overlap.insert(*index);
+                        outside.remove(index);
+                    } else {
+                        mid.remove(index);
+                        inside.insert(*index);
+                    }
+                } else {
+                    mid.insert(*index);
+                }
             }
         }
     });
-    intersect
+    overlap.extend(mid.iter());
+    inside.extend(outside.iter());
+    (overlap, inside, outside)
+}
+
+fn intersect(a: &HashSet<usize>, b: &HashSet<usize>, c: &HashSet<usize>) -> HashSet<usize> {
+    let tmp: HashSet<_> = a.intersection(b).map(|x| *x).collect();
+    tmp.intersection(c).map(|x| *x).collect()
 }
 
 fn count_on(cuboids: &Vec<Cuboid>) -> usize {
     let mut current: Vec<Cuboid> = Vec::new();
-    cuboids.iter().enumerate().for_each(|(index, next)| {
-        println!("index {index}");
-        current.push(*next);
+    cuboids.iter().for_each(|next| {
         let xs = current
             .iter()
             .enumerate()
-            .flat_map(|(i, cube)| [(cube.x1, i), (cube.x2, i)])
+            .flat_map(|(i, cube)| [(cube.x1, i, false), (cube.x2, i, true)])
             .sorted_by_key(|x| x.0)
             .collect_vec();
         let ys = current
             .iter()
             .enumerate()
-            .flat_map(|(i, cube)| [(cube.y1, i), (cube.y2, i)])
+            .flat_map(|(i, cube)| [(cube.y1, i, false), (cube.y2, i, true)])
             .sorted_by_key(|x| x.0)
             .collect_vec();
         let zs = current
             .iter()
             .enumerate()
-            .flat_map(|(i, cube)| [(cube.z1, i), (cube.z2, i)])
+            .flat_map(|(i, cube)| [(cube.z1, i, false), (cube.z2, i, true)])
             .sorted_by_key(|x| x.0)
             .collect_vec();
 
-        let intersect_x = intersect_axis(&xs, index);
-        let intersect_y = intersect_axis(&ys, index);
-        let intersect_z = intersect_axis(&zs, index);
-        let intersect_xy: HashSet<_> = intersect_x.intersection(&intersect_y).map(|x| *x).collect();
-        let intersect: HashSet<_> = intersect_xy
-            .intersection(&intersect_z)
-            .map(|x| *x)
-            .collect();
+        let intersect_x = intersect_axis(&xs, next.x1, next.x2);
+        let intersect_y = intersect_axis(&ys, next.y1, next.y2);
+        let intersect_z = intersect_axis(&zs, next.z1, next.z2);
 
-        intersect.iter().for_each(|other| {
-            let other = current[*other];
-            if next.is_on || other.is_on {
-                let is_on = !other.is_on;
-                let x1 = other.x1.max(next.x1);
-                let x2 = other.x2.min(next.x2);
-                let y1 = other.y1.max(next.y1);
-                let y2 = other.y2.min(next.y2);
-                let z1 = other.z1.max(next.z1);
-                let z2 = other.z2.min(next.z2);
-                let cube = Cuboid {
-                    is_on,
-                    x1,
-                    x2,
-                    y1,
-                    y2,
-                    z1,
-                    z2,
-                };
-                if cube.volume() > 0 {
-                    current.push(cube);
-                }
+        let overlap = intersect(&intersect_x.0, &intersect_y.0, &intersect_z.0);
+        let inside = intersect(&intersect_x.1, &intersect_y.1, &intersect_z.1);
+        let outside = intersect(&intersect_x.2, &intersect_y.2, &intersect_z.2);
+
+        if next.is_on {
+            if outside.len() > 0 {
+                println!("Skip it as it is fully within another cuboid");
+            } else if current.is_empty() {
+                current.push(*next);
+            } else {
+                let mut new_items = Vec::new();
+                overlap.iter().for_each(|other| {
+                    let other = current[*other];
+                    let is_on = true;
+
+                    if other.x1 != next.x1 {
+                        let x1 = other.x1.min(next.x1);
+                        let x2 = other.x1.max(next.x1);
+                        let y1 = other.y1;
+                        let y2 = other.y2;
+                        let z1 = other.z1;
+                        let z2 = other.z2;
+                        let cube = Cuboid {
+                            is_on,
+                            x1,
+                            x2,
+                            y1,
+                            y2,
+                            z1,
+                            z2,
+                        };
+                        if cube.volume() != 0 {
+                            new_items.push(cube);
+                        }
+
+                        let x1 = other.x2.min(next.x2);
+                        let x2 = other.x2.max(next.x2);
+                        let y1 = other.y1;
+                        let y2 = other.y2;
+                        let z1 = other.z1;
+                        let z2 = other.z2;
+                        let cube = Cuboid {
+                            is_on,
+                            x1,
+                            x2,
+                            y1,
+                            y2,
+                            z1,
+                            z2,
+                        };
+                        if cube.volume() != 0 {
+                            new_items.push(cube);
+                        }
+
+                        let x1 = other.x1.max(next.x1);
+                        let x2 = other.x2.min(next.x2);
+                        let y1 = other.y1;
+                        let y2 = other.y2;
+                        let z1 = other.z1;
+                        let z2 = other.z2;
+                        let mid = Cuboid {
+                            is_on,
+                            x1,
+                            x2,
+                            y1,
+                            y2,
+                            z1,
+                            z2,
+                        };
+                        if mid.volume() != 0 {
+                            new_items.push(cube);
+                        }
+                    }
+
+                    let x1 = other.x1.max(next.x1);
+                    let x2 = other.x2.min(next.x2);
+                    let y1 = other.y1.max(next.y1);
+                    let y2 = other.y2.min(next.y2);
+                    let z1 = other.z1.max(next.z1);
+                    let z2 = other.z2.min(next.z2);
+                    let cube = Cuboid {
+                        is_on,
+                        x1,
+                        x2,
+                        y1,
+                        y2,
+                        z1,
+                        z2,
+                    };
+                    new_items.push(cube);
+                });
+
+                let rem = current
+                    .iter()
+                    .enumerate()
+                    .filter(|(i, _)| inside.contains(i) == false && overlap.contains(i) == false)
+                    .map(|(_, n)| *n)
+                    .collect_vec();
+                current.clear();
+                current.extend(rem.iter());
+                current.extend(new_items.iter());
             }
-        });
-
-        if !next.is_on {
-            current.remove(index);
         }
     });
 
@@ -194,8 +278,9 @@ fn solution_a(input: &str) -> usize {
     count_on(&cuboids)
 }
 
-fn solution_b(_input: &str) -> usize {
-    0
+fn solution_b(input: &str) -> usize {
+    let cuboids = Cuboid::read_input(input, true);
+    count_on(&cuboids)
 }
 
 fn main() {
@@ -281,7 +366,6 @@ mod tests {
 
     #[test]
     fn test_volume() {
-        /*
         let input = "on x=-20..20,y=-30..30,z=-1..1";
         assert_eq!(solution_a(&input), 4800);
 
@@ -297,7 +381,7 @@ mod tests {
                 off x=-10..10,y=-40..40,z=-1..1
                 on x=-20..20,y=-30..30,z=-1..1";
         assert_eq!(solution_a(&input), 4800);
-*/
+
         let input = "on x=-20..20,y=-30..30,z=-1..1
                 off x=-10..10,y=-40..40,z=-1..1
                 on x=-20..20,y=-30..30,z=-1..1
