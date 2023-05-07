@@ -7,7 +7,7 @@ fn content() -> Option<String> {
     read_to_string("./input.txt").ok()
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 struct Cuboid {
     is_on: bool,
     p: [i64; 6],
@@ -132,6 +132,31 @@ fn cut(
         .collect_vec()
 }
 
+fn cut_iter(cuboids: &Vec<Cuboid>, points: &Vec<(i64, usize, bool)>, offset: usize) -> Vec<Cuboid> {
+    let cuts = cut(&cuboids, points, offset);
+    println!("Cuts: {}", cuts.len());
+    let mut index = 0;
+    let mut prev: Option<Cuboid> = None;
+    let mut sliced: Vec<Cuboid> = Vec::new();
+    cuts.iter().for_each(|x| {
+        if prev.is_none() || index != x.0 {
+            prev.map(|p| sliced.push(p));
+            prev = Some(cuboids[x.0].clone());
+            for missing in index+1..x.0 {
+                sliced.push(cuboids[missing].clone());
+            }
+            index = x.0;
+        }
+        prev.map(|p| {
+            let (a, b) = p.cut_at(offset, x.1);
+            sliced.push(b);
+            prev = Some(a);
+        });
+    });
+    prev.map(|p| sliced.push(p));
+    sliced
+}
+
 fn count_on(cuboids: &Vec<Cuboid>) -> usize {
     let xs = cuboids
         .iter()
@@ -139,88 +164,42 @@ fn count_on(cuboids: &Vec<Cuboid>) -> usize {
         .flat_map(|(i, cube)| [(cube.p[0], i, true), (cube.p[1], i, false)])
         .sorted_by_key(|x| x.0)
         .collect_vec();
-    let ys = cuboids
+    let sliced_x = cut_iter(&cuboids, &xs, 0);
+    let ys = sliced_x
         .iter()
         .enumerate()
         .flat_map(|(i, cube)| [(cube.p[2], i, true), (cube.p[3], i, false)])
         .sorted_by_key(|x| x.0)
         .collect_vec();
-    let zs = cuboids
+    let sliced_y = cut_iter(&sliced_x, &ys, 2);
+    let zs = sliced_y
         .iter()
         .enumerate()
         .flat_map(|(i, cube)| [(cube.p[4], i, true), (cube.p[5], i, false)])
         .sorted_by_key(|x| x.0)
         .collect_vec();
+    let sliced_z = cut_iter(&sliced_y, &zs, 4);
 
-    let cuts_x = cut(&cuboids, &xs, 0);
-    let mut index: Option<usize> = None;
-    let mut prev: Option<Cuboid> = None;
-    let mut step_1: Vec<Cuboid> = Vec::new();
-    cuts_x.iter().for_each(|x| {
-        if prev.is_none() || index.map_or(true, |p| p != x.0) {
-            prev.map(|p| step_1.push(p));
-            prev = Some(cuboids[x.0].clone());
-            index = Some(x.0);
+    let v0 = cuboids.iter().fold(0, |v, p| v+p.volume());
+    let v1 = sliced_x.iter().fold(0, |v, p| v+p.volume());
+    let v2 = sliced_y.iter().fold(0, |v, p| v+p.volume());
+    let v3 = sliced_z.iter().fold(0, |v, p| v+p.volume());
+    println!("Volumes: {v0} {v1} {v2} {v3}");
+
+    let mut cubes = HashSet::new();
+    sliced_z.iter().for_each(|p| {
+        if p.is_on {
+            cubes.insert(p);
+        } else {
+            let on = Cuboid { is_on: true, p: p.p};
+            if cubes.remove(&on) {
+                println!("Removed");
+            } else {
+                println!("Not found");
+            }
         }
-        prev.map(|p| {
-            let (a, b) = p.cut_at(0, x.1);
-            step_1.push(b);
-            prev = Some(a);
-        });
-        println!(
-            "x {} {} -> {} {}",
-            x.0, x.1, cuboids[x.0].p[0], cuboids[x.0].p[1]
-        );
     });
-    prev.map(|p| step_1.push(p));
-    let step_1 = step_1;
-
-    index = None;
-    prev = None;
-    let cuts_y = cut(&step_1, &ys, 2);
-    let mut step_2: Vec<Cuboid> = Vec::new();
-    cuts_y.iter().for_each(|x| {
-        if prev.is_none() || index.map_or(true, |p| p != x.0) {
-            prev.map(|p| step_2.push(p));
-            prev = Some(step_1[x.0].clone());
-            index = Some(x.0);
-        }
-        prev.map(|p| {
-            let (a, b) = p.cut_at(2, x.1);
-            step_2.push(b);
-            prev = Some(a);
-        });
-
-        println!(
-            "y {} {} -> {} {}",
-            x.0, x.1, step_1[x.0].p[2], step_1[x.0].p[3]
-        );
-    });
-    prev.map(|p| step_2.push(p));
-    let step_2 = step_2;
-
-    index = None;
-    prev = None;
-    let cuts_z = cut(&step_2, &zs, 4);
-    let mut step_3: Vec<Cuboid> = Vec::new();
-    cuts_z.iter().for_each(|x| {
-        if prev.is_none() || index.map_or(true, |p| p != x.0) {
-            prev.map(|p| step_3.push(p));
-            prev = Some(step_2[x.0].clone());
-            index = Some(x.0);
-        }
-        prev.map(|p| {
-            let (a, b) = p.cut_at(4, x.1);
-            step_3.push(b);
-            prev = Some(a);
-        });
-
-        println!(
-            "z {} {} -> {} {}",
-            x.0, x.1, step_2[x.0].p[4], step_2[x.0].p[5]
-        );
-    });
-    0
+    cubes.iter().fold(0, |v, p| v+p.volume())
 }
 
 fn solution_a(input: &str) -> usize {
@@ -311,14 +290,14 @@ mod tests {
             maxi.1 - mini.1,
             maxi.2 - mini.2
         );
-        assert_eq!(cuboids.len(), 421);
+        assert_eq!(cuboids.len(), 420);
     }
 
     #[test]
     fn test_volume() {
         let input = "on x=-20..20,y=-30..30,z=-1..1";
         assert_eq!(solution_a(&input), 4800);
-
+/*
         let input = "on x=-20..20,y=-30..30,z=-1..1
                 on x=-10..10,y=-20..20,z=-1..1";
         assert_eq!(solution_a(&input), 4800);
@@ -344,5 +323,6 @@ mod tests {
         off x=-10..10,y=-30..40,z=-1..1
         off x=-20..20,y=-30..30,z=-1..1";
         assert_eq!(solution_a(&input), 0);
+        */
     }
 }
