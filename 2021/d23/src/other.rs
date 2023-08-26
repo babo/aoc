@@ -17,7 +17,7 @@ impl fmt::Display for Burrow {
             write!(f, "   {}  ", self.as_char(i))?;
         }
         write!(f, "\n  ")?;
-        for i in (0..8 ).step_by(2) {
+        for i in (0..8).step_by(2) {
             write!(f, "   {}  ", self.as_char(i))?;
         }
         writeln!(f)
@@ -26,14 +26,19 @@ impl fmt::Display for Burrow {
 
 impl Burrow {
     fn new(input: &str) -> Self {
-        let value = input.bytes().filter(|x| x.is_ascii_uppercase()).map(|x| 1 + x - b'A').fold((1usize, 0u64), |accum, x| {
-            let (mut index, mut value) = accum;
-            if index > 7 {
-                index = 0;
-            }
-            value |= (x as u64 & 7) << (index * 4);
-            (index + 2, value)
-        }).1;
+        let value = input
+            .bytes()
+            .filter(|x| x.is_ascii_uppercase())
+            .map(|x| 1 + x - b'A')
+            .fold((1usize, 0u64), |accum, x| {
+                let (mut index, mut value) = accum;
+                if index > 7 {
+                    index = 0;
+                }
+                value |= (x as u64 & 7) << (index * 4);
+                (index + 2, value)
+            })
+            .1;
         Burrow { value }
     }
 
@@ -48,29 +53,33 @@ impl Burrow {
 
     fn as_char(&self, position: u8) -> char {
         let v = ((self.value >> (position * 4)) & 7u64) as u8;
-        if v == 0 { '.' } else { (b'A' - 1 + v) as char}
+        if v == 0 {
+            '.'
+        } else {
+            (b'A' - 1 + v) as char
+        }
     }
 
     fn done(&self) -> bool {
         for i in 0..8 {
             if self.get_val(i) != (i >> 1) + 1 {
-                return false
+                return false;
             }
         }
         true
     }
 
     fn move_to(&self, from: u8, to: u8) -> Option<u8> {
-        if self.get_val(to) != 0 || (from > 7 && to > 7)  {
+        if self.get_val(to) != 0 || (from > 7 && to > 7) {
             return None;
         }
         let (from, to) = (from.min(to), to.min(from));
         let mut steps = 0;
 
-        let row_f = if from < 8 {
+        let _row_f = if from < 8 {
             steps += 1;
             if from & 1 == 0 {
-                if self.get_val(from+1) != 0 {
+                if self.get_val(from + 1) != 0 {
                     return None;
                 }
                 steps = 1;
@@ -80,10 +89,10 @@ impl Burrow {
             from
         };
 
-        let row_t = if to < 8 {
+        let _row_t = if to < 8 {
             steps += 2;
             if to & 1 == 0 {
-                if self.get_val(to+1) != 0 {
+                if self.get_val(to + 1) != 0 {
                     return None;
                 }
                 steps += 1;
@@ -95,14 +104,10 @@ impl Burrow {
 
         Some(steps)
     }
-
-    fn home(&self) -> Self {
-        self
-    }
 }
 
 pub fn solve(input: &str) -> usize {
-    let mut value = Burrow::new(input);
+    let value = Burrow::new(input);
     println!("{}", value);
     0
 }
