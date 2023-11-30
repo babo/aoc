@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use std::fs::read_to_string;
 
 fn content() -> Option<String> {
@@ -62,7 +63,7 @@ mod tests {
     }
 
     #[test]
-     fn test_solution_b() {
+    fn test_solution_b() {
         let c = content().unwrap();
         assert_eq!(solution_b(&c), Some(0));
     }
