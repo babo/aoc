@@ -5,11 +5,11 @@ fn content() -> Option<String> {
     read_to_string("./input.txt").ok()
 }
 
-fn solve_a(line: &str) -> usize {
+fn solve_a(_line: &str) -> usize {
     0
 }
 
-fn solve_b(line: &str) -> usize {
+fn solve_b(_line: &str) -> usize {
     0
 }
 
