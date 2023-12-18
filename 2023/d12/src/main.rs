@@ -1,5 +1,6 @@
 use itertools::FoldWhile::{Continue, Done};
 use itertools::Itertools;
+use regex::bytes::Regex;
 use std::time::Instant;
 use std::{collections::HashMap, fs::read_to_string};
 
@@ -95,15 +96,45 @@ impl Buckets {
         Buckets { cache }
     }
 
+    fn front_first(&mut self, pattern: &str, groups: &[u16]) -> Option<usize> {
+        let has_next = groups.len() > 1;
+        let min_needed = groups.iter().map(|x| *x as usize).sum::<usize>()
+            + if has_next { groups.len() - 1 } else { 0 };
+
+        let mut placement: Vec<Vec<(usize, usize)>> = std::iter::repeat(Vec::new()).take(groups.len()).collect_vec();
+
+        for i in 0..groups.len() {
+            let start = if i == 0 { vec![0] } else {
+                let len = groups[i-1] as usize + 2;
+                placement[i-1].iter().map(|x| x.0 + len).collect_vec()
+            };
+            let number = groups[i];
+            pattern
+                .chars()
+                .enumerate()
+                .skip(*start.iter().min().unwrap())
+                .fold_while((None, None, number, false), |accu, (ln, ch)| {
+                    match ch {
+                        '.' => (),
+                        '#' => (),
+                        '?' => (),
+                        _ => unimplemented!("What a car!")
+                    };
+                    accu
+                });
+        }
+        None
+    }
+
     fn place(&mut self, pattern: &str, groups: &[u16]) -> Option<usize> {
-        // println!("place {pattern} {} {:?}", pattern.len(), groups);
+        println!("place {pattern} {} {:?}", pattern.len(), groups);
 
         let pattern = pattern.chars().skip_while(|x| *x == '.').join("");
         let has_next = groups.len() > 1;
         let min_needed = groups.iter().map(|x| *x as usize).sum::<usize>()
             + if has_next { groups.len() - 1 } else { 0 };
         if min_needed == 0 {
-            // println!("End");
+            println!("End");
             return if pattern.chars().filter(|x| *x == '#').count() == 0 {
                 Some(1)
             } else {
@@ -111,7 +142,7 @@ impl Buckets {
             };
         }
         if pattern.len() < min_needed {
-            // println!("Not enough {min_needed}");
+            println!("Not enough {min_needed}");
             return None;
         }
 
@@ -182,26 +213,26 @@ impl Buckets {
             let position = pattern.len() - frm;
             let below = self.place(&pattern[next..], &groups[1..]);
             let wildcard = if pattern.chars().nth(frm) == Some('?') {
-                // println!("Check wildcard");
+                println!("Check wildcard");
                 self.place(&pattern[frm + 1..], groups)
             } else {
                 None
             };
-            // println!("Got: {position} Below: {:?} Wildcard: {:?}", below, wildcard);
+            println!("Got: {position} Below: {:?} Wildcard: {:?}", below, wildcard);
             let total = below.map_or(0, |x| x) + wildcard.map_or(0, |x| x);
             let total = if total != 0 { Some(total) } else { None };
 
             total
         } else if result.1.is_some() && result.2 == 0 {
-            // println!("Found end of pattern");
+            println!("Found end of pattern");
             Some(1)
         } else {
             let reduced = pattern.chars().skip_while(|x| *x == '.').join("");
             if reduced.chars().next() == Some('?') {
-                // println!("Failed on wildcard, skip it: {reduced}");
+                println!("Failed on wildcard, skip it: {reduced}");
                 self.place(&reduced[1..], groups)
             } else {
-                // println!("Doesn't match");
+                println!("Doesn't match");
                 None
             }
         };
@@ -212,21 +243,6 @@ impl Buckets {
 
 fn combo(pattern: &str, groups: &[u16]) -> usize {
     let mut buckets = Buckets::new();
-    /*
-        let look = groups.iter().fold("".to_string(), |mut accu, x| {
-            if !accu.is_empty() {
-                accu.push('.');
-            }
-            for _ in 0..*x {
-                accu.push('#');
-            }
-            accu
-        });
-        println!("{pattern}");
-        println!("{look}");
-        println!("{:?}", groups);
-        println!();
-    */
     buckets.place(pattern, groups).unwrap()
 }
 
@@ -248,8 +264,8 @@ fn solve_b(line: &str) -> usize {
     groups.append(&mut groups.iter().copied().collect_vec());
     let b = combinations(&extra, &groups);
     let n = b * (b / r) * (b / r) * (b / r);
-    // println!("{line}");
-    // println!("{r} {b} {n}");
+    println!("{line}");
+    println!("{r} {b} {n}");
     n
 }
 
@@ -466,6 +482,12 @@ mod tests {
     fn test_solution_a() {
         let c = content().unwrap();
         assert_eq!(solution_a(&c), Some(7344));
+    }
+
+    #[test]
+    fn test_lib() {
+        let r = "...".to_string().replace("..", ".");
+        assert_eq!(r, ".");
     }
 
     #[test]
