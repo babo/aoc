@@ -169,7 +169,11 @@ fn solution_a(input: &str) -> Option<usize> {
     for i in 0..h {
         println!("{}", data[i * w..(i + 1) * w].iter().join(""));
     }
-    Some(data.iter().filter(|x| **x != '.').count())
+    let a = data.iter().filter(|x| **x == '#').count();
+    let b = data.iter().filter(|x| **x == 'x').count();
+
+    println!("border: {a} inside: {b} total: {}", a + b);
+    Some(a + b)
 }
 
 fn parse_1(line: &str) -> (u8, usize) {
@@ -209,7 +213,10 @@ fn parse_2(line: &str) -> (u8, usize) {
     ((d % 4) as u8, n)
 }
 
-fn solution_b(input: &str) -> Option<usize> {
+type Side = ((i64, i64), i64, u8);
+type Coord = ((i64, i64), (i64, i64));
+
+fn read_input(input: &str) -> Vec<Side> {
     let input = input
         .lines()
         .map(|x| x.trim())
@@ -227,7 +234,7 @@ fn solution_b(input: &str) -> Option<usize> {
                 1 => (c.0, c.1 + isize),
                 _ => unimplemented!("What a char!"),
             };
-            a.push((c, direction, size));
+            a.push((c, size, direction));
             (c, a)
         })
         .1;
@@ -235,9 +242,9 @@ fn solution_b(input: &str) -> Option<usize> {
         coord.iter().map(|x| x.0 .0).min().unwrap(),
         coord.iter().map(|x| x.0 .1).min().unwrap(),
     );
-    let sides = coord
+    coord
         .iter()
-        .map(|(c, d, l)| {
+        .map(|(c, l, d)| {
             let x = c.0 - start_pos.0;
             let y = c.1 - start_pos.1;
             let il = *l as i64;
@@ -248,73 +255,126 @@ fn solution_b(input: &str) -> Option<usize> {
                 3 => (x, y + il),
                 _ => unimplemented!("No way"),
             };
-            ((x, y), *d, il)
+            ((x, y), il, *d)
         })
-        .collect_vec();
-    let base = sides.iter().map(|x| x.2).sum::<i64>();
-    let horizontal = sides.iter().filter(|x| x.1 % 2 == 0).collect_vec();
+        .collect_vec()
+}
 
-    println!("{:?}", sides);
-    println!("Base: {base}");
-    println!("horizontal: {} lines", horizontal.len());
+fn endpoints(side: &Side) -> Coord {
+    match side.2 {
+        0 => (side.0, (side.0 .0 + side.1, side.0 .1)),
+        2 => ((side.0 .0 - side.1, side.0 .1), side.0),
+        1 => (side.0, (side.0 .0, side.0 .1 + side.1)),
+        3 => ((side.0 .0, side.0 .1 - side.1), side.0),
+        _ => unimplemented!("Invalid direction"),
+    }
+}
+
+fn cut_side(main: &Side, other: &Side) -> Option<Side> {
+    if (other.2 + 2) % 4 != main.2 {
+        None
+    } else {
+        let ma = endpoints(main);
+        let ot = endpoints(other);
+        if main.2 % 2 == 0 {
+            if ot.1 .0 < ma.0 .0 || ot.0 .0 > ma.1 .0 {
+                None
+            } else {
+                let ax = ma.0 .0.max(ot.0 .0);
+                let bx = ma.1 .0.min(ot.1 .0);
+                if other.2 == 0 {
+                    Some(((ax, ot.0 .1), bx - ax, other.2))
+                } else {
+                    Some(((bx, ot.0 .1), bx - ax, other.2))
+                }
+            }
+        } else {
+            if ot.1 .1 < ma.0 .1 || ot.0 .1 > ma.1 .1 {
+                None
+            } else {
+                let ay = ma.0 .1.max(ot.0 .1);
+                let by = ma.1 .1.min(ot.1 .1);
+                if other.2 == 3 {
+                    Some(((ot.0 .0, ay), by - ay, other.2))
+                } else {
+                    Some(((ot.0 .0, by), by - ay, other.2))
+                }
+            }
+        }
+    }
+}
+
+fn sides_above(main: Side, sides: &[&Side]) -> Vec<Side> {
+    let dir = (main.2 + 2) & 2;
+    let base_y = main.0 .1;
+    sides
+        .iter()
+        .filter(|x| x.2 == dir)
+        .filter(|p| p.0 .1 > base_y)
+        .map(|side| cut_side(&main, side))
+        .filter(|x| x.is_some())
+        .map(|x| x.unwrap())
+        .map(|p| ((p.0 .0, p.0 .1 - base_y), p.1, p.2))
+        .collect_vec()
+}
+
+fn solution_b(input: &str) -> Option<usize> {
+    let coord = read_input(input);
+    let base = coord.iter().map(|x| x.1).sum::<i64>();
+    let horizontal = coord.iter().filter(|x| x.2 % 2 == 0).collect_vec();
+
+    println!("{:?}", coord);
+    println!("{:?}", horizontal);
+    // coord.iter().for_each(|p| println!("({}, {}), {}, {}", p.0 .0, p.0 .1, p.1, p.2));
 
     Some(
         horizontal
             .iter()
-            .filter(|x| x.1 == 0)
+            .filter(|x| x.2 == 0)
             .fold(base as usize, |area, current| {
-                let (pos, _, length) = *current;
-                let length = *length;
-                println!("{} {}", pos.0, length);
-                let above = horizontal
-                    .iter()
-                    .filter(|((_, y), dir, _)| *dir == 2 && *y > pos.1)
-                    .filter(|((x, _), _, l)| *x > pos.0 && *x < pos.0 + length + *l)
-                    .map(|((x, y), _, l)| {
-                        let l = pos.0.max(*x - *l);
-                        let r = (*x + 1).min(pos.0 + length);
-                        (l - pos.0, r - l, *y - pos.1)
-                    })
-                    .sorted_by_key(|(_, _, y)| *y)
-                    .collect_vec();
-                above
-                    .iter()
-                    .for_each(|(x, l, y)| println!("    {x} {l} y: {y}"));
+                //println!("{} {}", pos.0, length);
+                let above = sides_above(**current, &horizontal);
+                let above = above.iter().sorted_by_key(|((_, y), _, _)| y).collect_vec();
 
-                let new_area = above
-                    .iter()
-                    .fold((vec![(0, length)], 0), |accu, side| {
-                        let (not_filled, area) = accu;
-                        let s_left = side.0 + 1;
-                        let s_right = side.0 + side.1;
-                        let s_height = side.2 - 1;
-                        let x =
-                            not_filled
-                                .iter()
-                                .fold((Vec::new(), area), |(mut remain, area), nf| {
-                                    let left = nf.0;
-                                    let right = nf.0 + nf.1;
-                                    if s_left >= right || s_right <= left {
-                                        remain.push(*nf);
+                let range = endpoints(current);
+                let (not_filled, collected_area) =
+                    above
+                        .iter()
+                        .fold((vec![(range.0 .0, range.1 .0)], 0), |accu, side_above| {
+                            let (not_filled, area) = accu;
+                            let side_ep = endpoints(side_above);
+                            let height = side_above.0 .1 - 1;
+                            println!(
+                                "    ({} {}) {}",
+                                side_above.0 .0, side_above.0 .1, side_above.1
+                            );
+                            not_filled.iter().fold(
+                                (Vec::new(), area),
+                                |(mut remain, area), range| {
+                                    //println!("{:?} {:?}", range, side_ep);
+                                    if range.0 > side_ep.1 .0 || range.1 < side_ep.0 .0 {
+                                        remain.push(*range);
                                         return (remain, area);
                                     }
-                                    if left < s_left {
-                                        remain.push((left, s_left - left));
+                                    if range.0 < side_ep.0 .0 {
+                                        let new_range = (range.0, side_ep.0 .0 - 1);
+                                        remain.push(new_range);
                                     }
-                                    if right > s_right {
-                                        remain.push((s_right, right - s_right));
+                                    if range.1 > side_ep.1 .0 {
+                                        let new_range = (side_ep.1 .0 + 1, range.1);
+                                        remain.push(new_range);
                                     }
-                                    // println!("{} {} - {} {}", s_right, right, s_left, left);
-                                    let d = right.min(s_right) - left.max(s_left);
-                                    let na = d * s_height;
-                                    // println!("area: {}x{}={}", d, s_height, na);
-                                    (remain, area + na)
-                                });
-                        // println!("{:?}", x.0);
-                        x
-                    })
-                    .1 as usize;
-                area + new_area
+                                    let d = range.1.min(side_ep.1 .0) - range.0.max(side_ep.0 .0);
+                                    //let d = 1.max(d - 1);
+                                    let new_area = d * height;
+                                    println!("match {d}x{height}={new_area}");
+                                    (remain, area + new_area)
+                                },
+                            )
+                        });
+                // assert!(not_filled.is_empty());
+                println!("\tcollected_area: {collected_area}");
+                area + collected_area as usize
             }),
     )
 }
@@ -372,5 +432,44 @@ mod tests {
     fn test_solution_b() {
         let c = content().unwrap();
         assert_eq!(solution_b(&c), Some(61661));
+    }
+
+    #[test]
+    fn test_minicube() {
+        let c = "R 2 a
+        D 2 a
+        L 2 a
+        U 2 a";
+        assert_eq!(solution_b(&c), Some(9));
+    }
+
+    #[test]
+    fn test_endpoints() {
+        let (a, b) = endpoints(&((0, 0), 6, 0));
+        assert_eq!(a, (0, 0));
+        assert_eq!(b, (6, 0));
+        let (a, b) = endpoints(&((6, 0), 6, 2));
+        assert_eq!(a, (0, 0));
+        assert_eq!(b, (6, 0));
+
+        let (a, b) = endpoints(&((0, 0), 6, 1));
+        assert_eq!(a, (0, 0));
+        assert_eq!(b, (0, 6));
+
+        let (a, b) = endpoints(&((0, 6), 6, 3));
+        assert_eq!(a, (0, 0));
+        assert_eq!(b, (0, 6));
+    }
+
+    #[test]
+    fn test_cut_side() {
+        let a = ((0, 0), 10, 0);
+        let b = ((10, 0), 10, 2);
+        assert_eq!(Some(b), cut_side(&a, &b));
+        assert_eq!(Some(a), cut_side(&b, &a));
+
+        let b = ((12, 0), 5, 2);
+        let c = ((10, 0), 3, 2);
+        assert_eq!(Some(c), cut_side(&a, &b));
     }
 }
