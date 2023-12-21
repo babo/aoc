@@ -210,6 +210,14 @@ fn parse_2(line: &str) -> (u8, usize) {
         .rev()
         .fold(0usize, |accu, x| accu * 16 + x);
 
+    let dc = match (d % 4) {
+        0 => 'R',
+        1 => 'D',
+        2 => 'L',
+        3 => 'U',
+        _ => unimplemented!("NO way"),
+    };
+    println!("{} {} nothing", dc, n);
     ((d % 4) as u8, n)
 }
 
@@ -217,16 +225,17 @@ type Side = ((i64, i64), i64, u8);
 type Coord = ((i64, i64), (i64, i64));
 
 fn read_input(input: &str) -> Vec<Side> {
-    let input = input
+    let simplified: Vec<(u8, usize)> = input
         .lines()
         .map(|x| x.trim())
         .filter(|x| !x.is_empty())
-        .join("\n");
-    let coord = input
-        .lines()
-        .fold(((0i64, 0i64), vec![]), |(c, mut a), line| {
-            let (direction, size) = parse_1(line);
-            let isize = size as i64;
+        .map(parse_1)
+        .collect_vec();
+
+    let coord = simplified
+        .iter()
+        .fold(((0i64, 0i64), vec![]), |(c, mut a), (direction, size)| {
+            let isize = *size as i64;
             let c = match direction {
                 0 => (c.0 + isize, c.1),
                 2 => (c.0 - isize, c.1),
@@ -234,7 +243,7 @@ fn read_input(input: &str) -> Vec<Side> {
                 1 => (c.0, c.1 + isize),
                 _ => unimplemented!("What a char!"),
             };
-            a.push((c, size, direction));
+            a.push((c, *size, *direction));
             (c, a)
         })
         .1;
@@ -282,7 +291,9 @@ fn cut_side(main: &Side, other: &Side) -> Option<Side> {
             } else {
                 let ax = ma.0 .0.max(ot.0 .0);
                 let bx = ma.1 .0.min(ot.1 .0);
-                if other.2 == 0 {
+                if ax == bx {
+                    None
+                } else if other.2 == 0 {
                     Some(((ax, ot.0 .1), bx - ax, other.2))
                 } else {
                     Some(((bx, ot.0 .1), bx - ax, other.2))
@@ -294,7 +305,9 @@ fn cut_side(main: &Side, other: &Side) -> Option<Side> {
             } else {
                 let ay = ma.0 .1.max(ot.0 .1);
                 let by = ma.1 .1.min(ot.1 .1);
-                if other.2 == 3 {
+                if ay == by {
+                    None
+                } else if other.2 == 3 {
                     Some(((ot.0 .0, ay), by - ay, other.2))
                 } else {
                     Some(((ot.0 .0, by), by - ay, other.2))
@@ -324,59 +337,70 @@ fn solution_b(input: &str) -> Option<usize> {
     let horizontal = coord.iter().filter(|x| x.2 % 2 == 0).collect_vec();
 
     println!("{:?}", coord);
-    println!("{:?}", horizontal);
+    // println!("{:?}", horizontal);
+    println!("Base: {base}");
     // coord.iter().for_each(|p| println!("({}, {}), {}, {}", p.0 .0, p.0 .1, p.1, p.2));
 
-    Some(
-        horizontal
-            .iter()
-            .filter(|x| x.2 == 0)
-            .fold(base as usize, |area, current| {
-                //println!("{} {}", pos.0, length);
-                let above = sides_above(**current, &horizontal);
-                let above = above.iter().sorted_by_key(|((_, y), _, _)| y).collect_vec();
+    let collected_area = horizontal
+        .iter()
+        .filter(|x| x.2 == 0)
+        .map(|current| {
+            println!("{:?}", current);
+            let above = sides_above(**current, &horizontal);
+            let above = above.iter().sorted_by_key(|((_, y), _, _)| y).collect_vec();
 
-                let range = endpoints(current);
-                let (not_filled, collected_area) =
-                    above
-                        .iter()
-                        .fold((vec![(range.0 .0, range.1 .0)], 0), |accu, side_above| {
-                            let (not_filled, area) = accu;
-                            let side_ep = endpoints(side_above);
-                            let height = side_above.0 .1 - 1;
-                            println!(
-                                "    ({} {}) {}",
-                                side_above.0 .0, side_above.0 .1, side_above.1
-                            );
-                            not_filled.iter().fold(
-                                (Vec::new(), area),
-                                |(mut remain, area), range| {
-                                    //println!("{:?} {:?}", range, side_ep);
-                                    if range.0 > side_ep.1 .0 || range.1 < side_ep.0 .0 {
-                                        remain.push(*range);
-                                        return (remain, area);
-                                    }
-                                    if range.0 < side_ep.0 .0 {
-                                        let new_range = (range.0, side_ep.0 .0 - 1);
-                                        remain.push(new_range);
-                                    }
-                                    if range.1 > side_ep.1 .0 {
-                                        let new_range = (side_ep.1 .0 + 1, range.1);
-                                        remain.push(new_range);
-                                    }
-                                    let d = range.1.min(side_ep.1 .0) - range.0.max(side_ep.0 .0);
-                                    //let d = 1.max(d - 1);
-                                    let new_area = d * height;
-                                    println!("match {d}x{height}={new_area}");
-                                    (remain, area + new_area)
-                                },
-                            )
+            let collected_area = above
+                .iter()
+                .map(|x| endpoints(x))
+                .fold(
+                    (Vec::new(), 0usize),
+                    |(mut prev, area): (Vec<Coord>, usize), curr| {
+                        let cutted = prev.iter().fold(Some(curr), |accu, p| {
+                            if let Some(c) = accu {
+                                println!("    ({}, {}) ({}, {})", p.0 .0, p.1 .0, c.0 .0, c.0 .1);
+                                if c.0 .0 >= p.1 .0 || c.1 .0 <= p.0 .0 {
+                                    Some(c)
+                                } else if c.0 .0 >= p.0 .0 && c.1 .0 <= p.1 .0 {
+                                    None
+                                } else {
+                                    Some((
+                                        (c.0 .0.max(p.0 .0), c.0 .1),
+                                        (c.1 .0.min(p.1 .0), c.1 .1),
+                                    ))
+                                }
+                            } else {
+                                None
+                            }
                         });
-                // assert!(not_filled.is_empty());
-                println!("\tcollected_area: {collected_area}");
-                area + collected_area as usize
-            }),
-    )
+                        let d = if let Some(c) = cutted {
+                            if c.1 .0 > c.0 .0 {
+                                //println!("    {:?} ({}, {})", curr, c.0.0, c.1.0);
+                                prev.push(c);
+                                c.1 .0 - c.0 .0 - 1
+                            } else {
+                                0
+                            }
+                        } else {
+                            0
+                        };
+
+                        let h = curr.0 .1 - 1;
+                        let area_under = d * h;
+                        println!("{d}x{h}={area_under}");
+                        (prev, area + area_under as usize)
+                    },
+                )
+                .1;
+
+            println!("\tarea above: {collected_area}");
+            collected_area
+        })
+        .sum::<usize>();
+    println!(
+        "\tbase: {base} collected_area: {collected_area} total: {}",
+        base as usize + collected_area
+    );
+    Some(base as usize + collected_area)
 }
 
 fn main() {
@@ -410,16 +434,46 @@ mod tests {
 
     #[test]
     fn test_parsing() {
-        assert_eq!(parse_2("a b (#70c710)"), (0, 461937));
-        assert_eq!(parse_2("a b (#0dc571)"), (1, 56407));
-        assert_eq!(parse_2("a b (#8ceee2)"), (2, 577262));
-        assert_eq!(parse_2("a b (#7a21e3)"), (3, 500254));
+        assert_eq!(parse_2("a b (70c710)"), (0, 461937));
+        assert_eq!(parse_2("a b (0dc571)"), (1, 56407));
+        assert_eq!(parse_2("a b (5713f0)"), (0, 356671));
+        assert_eq!(parse_2("a b (d2c081)"), (1, 863240));
+        assert_eq!(parse_2("a b (59c680)"), (0, 367720));
+        assert_eq!(parse_2("a b (411b91)"), (1, 266681));
+        assert_eq!(parse_2("a b (8ceee2)"), (2, 577262));
+        assert_eq!(parse_2("a b (caa173)"), (3, 829975));
+        assert_eq!(parse_2("a b (1b58a2)"), (2, 112010));
+        assert_eq!(parse_2("a b (caa171)"), (1, 829975));
+        assert_eq!(parse_2("a b (7807d2)"), (2, 491645));
+        assert_eq!(parse_2("a b (a77fa3)"), (3, 686074));
+        assert_eq!(parse_2("a b (015232)"), (2, 5411));
+        assert_eq!(parse_2("a b (7a21e3)"), (3, 500254));
     }
 
     #[test]
     fn test_simple_b() {
         let data = simple().unwrap();
         assert_eq!(solution_b(&data), Some(952408144115));
+    }
+
+    #[test]
+    fn test_vilk() {
+        let data = "
+        R 20 nothing
+        D 5 nothing
+        R 10 nothing
+        D 35 nothing
+        R 15 nothing
+        D 10 nothing
+        L 20 nothing
+        U 5 nothing
+        L 10 nothing
+        D 10 nothing
+        L 5 nothing
+        U 45 nothing
+        L 10 nothing
+        U 10 nothing";
+        assert_eq!(solution_b(&data), Some(1281));
     }
 
     #[test]
@@ -436,11 +490,13 @@ mod tests {
 
     #[test]
     fn test_minicube() {
-        let c = "R 2 a
+        let c = "R 5 a
         D 2 a
-        L 2 a
-        U 2 a";
-        assert_eq!(solution_b(&c), Some(9));
+        R 2 a
+        D 2 a
+        L 7 a
+        U 4 a";
+        assert_eq!(solution_a(&c), solution_b(&c));
     }
 
     #[test]
@@ -471,5 +527,21 @@ mod tests {
         let b = ((12, 0), 5, 2);
         let c = ((10, 0), 3, 2);
         assert_eq!(Some(c), cut_side(&a, &b));
+
+        let a = ((0, 0), 6, 0);
+        let b = ((6, 9), 5, 2);
+        assert_eq!(Some(c), cut_side(&a, &b));
+    }
+
+    #[test]
+    fn test_sort() {
+        let a = vec![((3, 2), 8), ((0, 7), 4), ((3, 5), 6)];
+        let c = vec![((0, 7), 4), ((3, 5), 6), ((3, 2), 8)];
+        let b = a
+            .iter()
+            .sorted_by_key(|((x, y), l)| (x, y, l))
+            .collect_vec();
+        println!("{:?}", b);
+        assert_eq!(1, 2);
     }
 }
