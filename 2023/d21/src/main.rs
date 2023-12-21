@@ -66,18 +66,42 @@ fn solution_b(input: &str, steps: usize) -> Option<usize> {
             + (((h as i64 + y % h as i64).abs() as usize) % h) * w
     };
 
+    println!("w {w} h {h}");
+
     let hs: HashSet<(i64, i64)> = (0..steps).fold(
         HashSet::from_iter(std::iter::repeat(s).take(1)),
-        |current, _step| {
-            HashSet::from_iter(
+        |current, step| {
+            let hs = HashSet::from_iter(
                 current
                     .iter()
                     .map(|(x, y)| vec![(*x - 1, *y), (*x + 1, *y), (*x, *y + 1), (*x, *y - 1)])
                     .flatten()
                     .filter(|xy| input[at(xy)] != '#'),
-            )
+            );
+            /*
+            let mut count = 0;
+            for y in 0..h as i64 {
+                for x in 0..w as i64{
+                    let h = hs.contains(&(x as i64, y as i64));
+                    if h {
+                        count += 1;
+                    }
+                    print!("{}", if input[at(&(x, y))] == '#' { '#' } else if h { 'O' } else {'.'});
+                }
+                println!()
+            }
+            */
+            let mul = 5;
+            let count = hs.iter().filter(|x| x.0 >= (mul -1) * w as i64 && x.0 < mul*w as i64 && x.1 >= (mul - 1) * h as i64 && x.1 < mul * h as i64).count();
+            println!("{step} {count}");
+            println!("min x {:?} max x {:?}", hs.iter().map(|x| x.0).min().unwrap(), hs.iter().map(|x| x.0).max().unwrap());
+            println!("min y {:?} max y {:?}", hs.iter().map(|x| x.1).min().unwrap(), hs.iter().map(|x| x.1).max().unwrap());
+            //let found = (0..w).map(|x| (0..h).filter(|y| input[x + y * w] != '#' && !hs.contains(&(x as i64, *y as i64))).count()).sum::<usize>();
+            //println!("{step} {}", found);
+            hs
         },
     );
+
     Some(hs.len())
 }
 
@@ -85,7 +109,8 @@ fn main() {
     let c = content().unwrap();
 
     let a = solution_a(&c, 64);
-    let b = solution_b(&c, 26501365);
+    //let b = solution_b(&c, 26501365);
+    let b = solution_b(&c, 100);
 
     println!("Step A: {:?}", a);
     println!("Step B: {:?}", b);
@@ -125,6 +150,13 @@ mod tests {
         steps
             .iter()
             .for_each(|(steps, result)| assert_eq!(solution_b(&data, *steps), Some(*result)));
+    }
+
+    #[test]
+    fn test_draw() {
+        let data = simple().unwrap();
+        let data = content().unwrap();
+        assert_eq!(solution_b(&data, 131 * 100), Some(1594+1));
     }
 
     #[test]
