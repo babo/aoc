@@ -62,7 +62,6 @@ fn solution_a(input: &str) -> Option<usize> {
         .filter(|x| !x.is_empty())
         .join("\n");
     let lr = false; //input.lines().skip(1).next().map(|x| x.starts_with("U ")) == Some(true);
-    println!("Left inside: {lr}");
     let coord = input
         .lines()
         .fold(((0, 0), vec![(0, 0)]), |(c, mut a), line| {
@@ -210,7 +209,7 @@ fn parse_2(line: &str) -> (u8, usize) {
         .rev()
         .fold(0usize, |accu, x| accu * 16 + x);
 
-    let dc = match (d % 4) {
+    let dc = match d % 4 {
         0 => 'R',
         1 => 'D',
         2 => 'L',
@@ -231,6 +230,84 @@ fn read_input(input: &str) -> Vec<Side> {
         .filter(|x| !x.is_empty())
         .map(parse_1)
         .collect_vec();
+
+    let coord = simplified
+        .iter()
+        .fold(((0i64, 0i64), vec![]), |(c, mut a), (direction, size)| {
+            let isize = *size as i64;
+            let c = match direction {
+                0 => (c.0 + isize, c.1),
+                2 => (c.0 - isize, c.1),
+                3 => (c.0, c.1 - isize),
+                1 => (c.0, c.1 + isize),
+                _ => unimplemented!("What a char!"),
+            };
+            a.push((c, *size, *direction));
+            (c, a)
+        })
+        .1;
+    let start_pos = (
+        coord.iter().map(|x| x.0 .0).min().unwrap(),
+        coord.iter().map(|x| x.0 .1).min().unwrap(),
+    );
+    coord
+        .iter()
+        .map(|(c, l, d)| {
+            let x = c.0 - start_pos.0;
+            let y = c.1 - start_pos.1;
+            let il = *l as i64;
+            let (x, y) = match d {
+                0 => (x - il, y),
+                2 => (x + il, y),
+                1 => (x, y - il),
+                3 => (x, y + il),
+                _ => unimplemented!("No way"),
+            };
+            ((x, y), il, *d)
+        })
+        .collect_vec()
+}
+
+fn read_inner(input: &str) -> Vec<Side> {
+    let simplified: Vec<(u8, usize)> = input
+        .lines()
+        .map(|x| x.trim())
+        .filter(|x| !x.is_empty())
+        .map(parse_1)
+        .collect_vec();
+
+    let compensate = |(pd, ps): (u8, usize), (d, s): (u8, usize)| match (pd, d) {
+        (0, 1) => (ps - 1, s),
+        (0, 3) => (ps, s + 1),
+        (1, 0) => (ps, s + 1),
+        (1, 2) => (ps - 1, s),
+        (2, 1) => (ps, s + 1),
+        (2, 3) => (ps - 1, s),
+        (3, 0) => (ps - 1, s),
+        (3, 2) => (ps, s + 1),
+        _ => unimplemented!("Not a supported combo"),
+    };
+
+    let (mut simplified, ny): (Vec<(u8, usize)>, Option<(u8, usize)>) =
+        simplified
+            .iter()
+            .fold((Vec::new(), None), |(mut accu, prev), curr| {
+                if let Some((pd, ps)) = prev {
+                    let (ps, cs) = compensate((pd, ps), *curr);
+                    accu.push((pd, ps));
+                    (accu, Some((curr.0, cs)))
+                } else {
+                    (accu, Some(*curr))
+                }
+            });
+    if let Some((d, s)) = ny {
+        let ns = if let Some((pd, _ps)) = simplified.last() {
+            compensate((*pd, s), (d, s)).0
+        } else {
+            s
+        };
+        simplified.push((d, ns));
+    }
 
     let coord = simplified
         .iter()
@@ -332,14 +409,13 @@ fn sides_above(main: Side, sides: &[&Side]) -> Vec<Side> {
 }
 
 fn solution_b(input: &str) -> Option<usize> {
-    let coord = read_input(input);
-    let base = coord.iter().map(|x| x.1).sum::<i64>();
-    let horizontal = coord.iter().filter(|x| x.2 % 2 == 0).collect_vec();
+    let outer = read_input(input);
+    let border = outer.iter().map(|x| x.1).sum::<i64>();
+    let inner = read_inner(input);
+    let horizontal = inner.iter().filter(|x| x.2 % 2 == 0).collect_vec();
 
-    println!("{:?}", coord);
-    // println!("{:?}", horizontal);
-    println!("Base: {base}");
-    // coord.iter().for_each(|p| println!("({}, {}), {}, {}", p.0 .0, p.0 .1, p.1, p.2));
+    println!("{:?}", inner);
+    println!("Border: {border}");
 
     let collected_area = horizontal
         .iter()
@@ -376,7 +452,7 @@ fn solution_b(input: &str) -> Option<usize> {
                             if c.1 .0 > c.0 .0 {
                                 //println!("    {:?} ({}, {})", curr, c.0.0, c.1.0);
                                 prev.push(c);
-                                c.1 .0 - c.0 .0 - 1
+                                c.1 .0 - c.0 .0
                             } else {
                                 0
                             }
@@ -384,7 +460,7 @@ fn solution_b(input: &str) -> Option<usize> {
                             0
                         };
 
-                        let h = curr.0 .1 - 1;
+                        let h = curr.0 .1;
                         let area_under = d * h;
                         println!("{d}x{h}={area_under}");
                         (prev, area + area_under as usize)
@@ -397,10 +473,10 @@ fn solution_b(input: &str) -> Option<usize> {
         })
         .sum::<usize>();
     println!(
-        "\tbase: {base} collected_area: {collected_area} total: {}",
-        base as usize + collected_area
+        "\tborder: {border} collected_area: {collected_area} total: {}",
+        border as usize + collected_area
     );
-    Some(base as usize + collected_area)
+    Some(border as usize + collected_area)
 }
 
 fn main() {
@@ -477,6 +553,34 @@ mod tests {
     }
 
     #[test]
+    fn test_hulk() {
+        let data = "
+        R 20 nothing
+        D 11 nothing
+        R 20 nothing
+        U 10 nothing
+        R 10 nothing
+        D 20 nothing
+        L 8 nothing
+        D 10 nothing
+        R 6 nothing
+        D 5 nothing
+        L 20 nothing
+        U 10 nothing
+        L 20 nothing
+        D 20 nothing
+        L 10 nothing
+        U 15 nothing
+        L 15 nothing
+        U 15 nothing
+        R 10 nothing
+        U 7 nothing
+        R 6 nothing
+        U 10 nothing";
+        assert_eq!(solution_a(&data), solution_b(&data));
+    }
+
+    #[test]
     fn test_solution_a() {
         let c = content().unwrap();
         assert_eq!(solution_a(&c), Some(61661));
@@ -485,7 +589,11 @@ mod tests {
     #[test]
     fn test_solution_b() {
         let c = content().unwrap();
-        assert_eq!(solution_b(&c), Some(61661));
+        let r = solution_b(&c);
+        assert!(r.is_some());
+        let r = r.unwrap();
+        assert!(r < 136519297262412);
+        assert_eq!(r, 61661);
     }
 
     #[test]
@@ -531,17 +639,5 @@ mod tests {
         let a = ((0, 0), 6, 0);
         let b = ((6, 9), 5, 2);
         assert_eq!(Some(c), cut_side(&a, &b));
-    }
-
-    #[test]
-    fn test_sort() {
-        let a = vec![((3, 2), 8), ((0, 7), 4), ((3, 5), 6)];
-        let c = vec![((0, 7), 4), ((3, 5), 6), ((3, 2), 8)];
-        let b = a
-            .iter()
-            .sorted_by_key(|((x, y), l)| (x, y, l))
-            .collect_vec();
-        println!("{:?}", b);
-        assert_eq!(1, 2);
     }
 }
