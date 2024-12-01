@@ -2,7 +2,7 @@ use itertools::Itertools;
 use std::fs::read_to_string;
 
 fn content() -> Option<String> {
-    read_to_string("./input.txt").ok()
+    read_to_string("./input").ok()
 }
 
 fn solve_a(_line: &str) -> usize {
