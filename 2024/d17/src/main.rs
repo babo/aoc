@@ -1,42 +1,14 @@
 use itertools::Itertools;
-use std::collections::HashMap;
 use std::fs::read_to_string;
 
 fn content() -> Option<String> {
     read_to_string("./input").ok()
 }
 
-fn sub_1(a: u64) -> u64 {
-    let b = (a % 8) ^ 7;
-    let c = a / 2u64.pow(b as u32);
-    ((b ^ c) ^ 7) % 8
-}
-
-fn sub_2(a: u64) -> u64 {
-    let b = (a % 8) ^ 7;
-    let c = a / 2u64.pow(b as u32);
-    ((b ^ c) ^ 7) % 8
-}
-
-fn part_1() -> HashMap<u8, u64> {
-    let mut rtv = HashMap::new();
-
-    for res in 0..8 {
-        for a in 0u64.. {
-            if sub_1(a) == res {
-                rtv.insert(res as u8, a);
-                break;
-            }
-        }
-    }
-
-    rtv
-}
-
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
 enum Instruction {
     Adv = 0,
-    Bxl = 1,
+    Bxl,
     Bst,
     Jzn,
     Bxc,
@@ -226,66 +198,40 @@ fn solution_a(input: &str) -> String {
     out.iter().map(|x| x.to_string()).join(",")
 }
 
-fn solve_b(program: Vec<u8>) -> Option<u64> {
-    let nums = program.iter().enumerate().map(|(i, x)| (i as u32, *x)).collect_vec();
-    for a in 0u64.. {
-        if nums.iter().all(|(i, x)| {
-            *x as u64 == sub_2(a / 8u64.pow(*i))
-        }) {
-            return Some(a);
-        }
-    }
-    None
-}
-
-fn solve_c(program: Vec<u8>) -> Option<u64> {
-    let mut cache = HashMap::new();
-    for i in 0u8..8 {
-        let mut a10 = vec![];
-
-        for a in 0.. {
-            if sub_1(a) == i as u64 {
-                a10.push(a);
-                if a10.len() == 10 {
-                    break;
-                }
-            }
-        }
-        cache.insert(i, a10);
-    }
-    println!("{:?}", cache);
-
-    let nums = program.iter().enumerate().map(|(i, x)| (i as u32, *x)).collect_vec();
-    let n = program.len();
-    println!("Length: {}", n);
-
-    Some(program.iter().fold(0, |acc, x| {
-        let a = cache.get(x).unwrap()[1];
-        acc * 8 + a
-    }))
+fn sub_1a(a: u64) -> (u8, u64) {
+    let b = (a & 7) ^ 7;
+    let c = a >> b;
+    let rtv = ((b ^ c) ^ 7) & 7;
+    //println!("a: {} b: {} c: {} => {}", a, b, c, rtv);
+    (rtv as u8, a >> 3)
 }
 
 fn solution_b(input: &str) -> Option<usize> {
     let mut hh = Handheld::new(input);
-    let data = hh.program.clone().iter().map(|x| *x).take(10).collect::<Vec<_>>();
+    let prg: Vec<u8> = hh.program.iter().rev().map(|x| *x).collect();
 
-    if let Some(a) = solve_c(data) {
-        hh.reg_a = a as u64;
-        let out = hh.run();
-        println!("Found a: {} {}", a, u64::MAX);
-        println!("Program: {:?}", hh.program);
-        println!("Output: {:?}", out);
-        if out.len() == hh.program.len()
-            && out
-                .iter()
-                .zip(hh.program.iter())
-                .all(|(a, b)| *a == *b as u64)
-        {
-            return Some(a as usize);
-        }
-    }
+    let s = prg.iter().fold(vec![0], |acc, actual| {
+        assert_ne!(acc.len(), 0);
+        let mut found = vec![];
+        acc.iter().for_each(|a| {
+            for i in (a * 8)..((a + 1) * 8) {
+                if sub_1a(i) == (*actual, *a) {
+                    println!("Found: {}", i);
+                    found.push(i);
+                }
+            }
+        });
+        found
+    });
+    let rtv = s.iter().min().map(|x| *x as usize);
 
-    None
+    rtv.map(|x| {
+        hh.reg_a = x as u64;
+        let res = hh.run();
+        println!("Result: {:?}", res);
+        assert_eq!(res, hh.program.iter().map(|x| *x as u64).collect_vec());
+    });
+    rtv
 }
 
 fn main() {
@@ -364,16 +310,6 @@ mod tests {
     }
 
     #[test]
-    fn test_simple_b() {
-        let data = "Register A: 2024
-                    Register B: 0
-                    Register C: 0
-
-                    Program: 0,3,5,4,3,0";
-        assert_eq!(solution_b(&data), Some(117440));
-    }
-
-    #[test]
     fn test_solution_a() {
         let c = content().unwrap();
         let out = solution_a(&c);
@@ -383,6 +319,6 @@ mod tests {
     #[test]
     fn test_solution_b() {
         let c = content().unwrap();
-        assert_eq!(solution_b(&c), Some(0));
+        assert_eq!(solution_b(&c), Some(267265166222235));
     }
 }

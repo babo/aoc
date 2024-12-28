@@ -66,8 +66,6 @@ Using the information provided by the debugger, initialize the registers to the 
 
 Your puzzle answer was `2,1,0,1,7,2,5,0,3`.
 
-The first half of this puzzle is complete! It provides one gold star: \*
-
 \--- Part Two ---
 ----------
 
@@ -88,8 +86,12 @@ This program outputs a copy of itself if register `A` is instead initialized to 
 
 *What is the lowest positive initial value for register `A` that causes the program to output a copy of itself?*
 
-Answer:
+Your puzzle answer was `267265166222235`.
 
-Although it hasn't changed, you can still [get your puzzle input](17/input).
+Both parts of this puzzle are complete! They provide two gold stars: \*\*
 
-You can also [Shareon [Bluesky](https://bsky.app/intent/compose?text=I%27ve+completed+Part+One+of+%22Chronospatial+Computer%22+%2D+Day+17+%2D+Advent+of+Code+2024+%23AdventOfCode+https%3A%2F%2Fadventofcode%2Ecom%2F2024%2Fday%2F17) [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+Part+One+of+%22Chronospatial+Computer%22+%2D+Day+17+%2D+Advent+of+Code+2024&url=https%3A%2F%2Fadventofcode%2Ecom%2F2024%2Fday%2F17&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.
+At this point, you should [return to your Advent calendar](/2024) and try another puzzle.
+
+If you still want to see it, you can [get your puzzle input](17/input).
+
+You can also [Shareon [Bluesky](https://bsky.app/intent/compose?text=I%27ve+completed+%22Chronospatial+Computer%22+%2D+Day+17+%2D+Advent+of+Code+2024+%23AdventOfCode+https%3A%2F%2Fadventofcode%2Ecom%2F2024%2Fday%2F17) [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+%22Chronospatial+Computer%22+%2D+Day+17+%2D+Advent+of+Code+2024&url=https%3A%2F%2Fadventofcode%2Ecom%2F2024%2Fday%2F17&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.
