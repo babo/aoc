@@ -62,6 +62,32 @@ fn solution_a(input: &str) -> usize {
         .sum::<usize>()
 }
 
+fn tricky(design: &str, patterns: &Vec<&str>, memo: &mut HashMap<String, usize>) {
+    if design.is_empty() || memo.contains_key(design) {
+        return;
+    }
+
+    let count = patterns.iter().fold(0, |acc, p| {
+        if design.starts_with(p) {
+            let right = if p.len() == design.len() {
+                1
+            } else {
+                let rsub = &design[p.len()..];
+                if !memo.contains_key(rsub) {
+                    tricky(rsub, patterns, memo);
+                }
+                *memo.get(rsub).unwrap()
+            };
+            acc + right
+        } else {
+            acc
+        }
+    });
+
+    println!("|{}| {}", design, count);
+    memo.insert(design.to_string(), count);
+}
+
 fn solution_b(input: &str) -> usize {
     let patterns = input
         .trim()
@@ -73,47 +99,32 @@ fn solution_b(input: &str) -> usize {
         .split(", ")
         .collect::<Vec<&str>>();
 
-    let mut pattern_map: HashMap<char, Vec<&str>> = HashMap::new();
+    let body = input.trim().lines().skip(2).join("\n");
 
-    patterns.iter().for_each(|p| {
-        let k: char = p.chars().next().unwrap();
-        if let Some(v) = pattern_map.get_mut(&k) {
-            v.push(p);
-        } else {
-            pattern_map.insert(k, vec![p]);
-        }
-    });
-    pattern_map.values_mut().for_each(|v| v.sort());
+    let patterns: Vec<&str> = patterns
+        .iter()
+        .filter(|p| body.contains(**p))
+        .sorted_by(|a, b| a.len().cmp(&b.len()))
+        .copied()
+        .collect();
 
-    input
-        .trim()
-        .lines()
-        .skip(2)
+    let mut memo: HashMap<String, usize> = HashMap::new();
+
+    body.lines()
         .map(|design| {
-            let mut count = 0;
-            let n = design.len();
-            let mut open_set = vec![0];
+            let p = patterns
+                .iter()
+                .filter(|x| design.contains(**x))
+                .copied()
+                .collect();
+            let design = design.trim().to_string();
+            tricky(design.as_str(), &p, &mut memo);
+            let val = *memo.get(&design).unwrap();
+            println!("design: |{}| {}", design, val);
 
-            while !open_set.is_empty() {
-                let start = open_set.pop().unwrap();
-                let start_char = design.chars().nth(start).unwrap();
-                if let Some(patterns) = pattern_map.get(&start_char) {
-                    for p in patterns {
-                        let l = p.len();
-                        if start + l <= n && design[start..].starts_with(p) {
-                            let new_start = start + l;
-                            if new_start == n {
-                                count += 1;
-                            } else {
-                                open_set.push(new_start);
-                            }
-                        }
-                    }
-                }
-            }
-            count
+            val
         })
-        .sum::<usize>()
+        .sum()
 }
 
 fn main() {
@@ -160,6 +171,36 @@ mod tests {
     #[test]
     fn test_solution_b() {
         let c = content().unwrap();
-        assert_eq!(solution_b(&c), 0);
+        assert_eq!(solution_b(&c), 678536865274732);
+    }
+
+    #[test]
+    fn test_tricky_1() {
+        let patterns = vec!["a", "b", "ab", "ba", "bc", "cd", "d"];
+        let mut memo: HashMap<String, usize> = HashMap::from_iter(
+            patterns
+                .iter()
+                .map(|p| (p.to_string(), naive_b(p, &patterns))),
+        );
+        println!("{:?}", memo);
+        let design = "aba".to_string();
+        tricky(design.as_str(), &patterns, &mut memo);
+        assert_eq!(memo.get(&design), Some(&3));
+    }
+
+    #[test]
+    fn test_tricky_2() {
+        let data = simple().unwrap();
+        assert_eq!(solution_b(&data), 16);
+    }
+
+    #[test]
+    fn test_tricky_3() {
+        let data = "r, wr, b, g, bwu, rb, gb, br
+
+        gbbr
+        rrbgbr";
+
+        assert_eq!(solution_b(&data), 10);
     }
 }

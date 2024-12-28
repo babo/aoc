@@ -48,8 +48,6 @@ To get into the onsen as soon as possible, consult your list of towel patterns a
 
 Your puzzle answer was `333`.
 
-The first half of this puzzle is complete! It provides one gold star: \*
-
 \--- Part Two ---
 ----------
 
@@ -87,8 +85,12 @@ Adding up all of the ways the towels in this example could be arranged into the 
 
 They'll let you into the onsen as soon as you have the list. *What do you get if you add up the number of different ways you could make each design?*
 
-Answer:
+Your puzzle answer was `678536865274732`.
 
-Although it hasn't changed, you can still [get your puzzle input](19/input).
+Both parts of this puzzle are complete! They provide two gold stars: \*\*
 
-You can also [Shareon [Bluesky](https://bsky.app/intent/compose?text=I%27ve+completed+Part+One+of+%22Linen+Layout%22+%2D+Day+19+%2D+Advent+of+Code+2024+%23AdventOfCode+https%3A%2F%2Fadventofcode%2Ecom%2F2024%2Fday%2F19) [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+Part+One+of+%22Linen+Layout%22+%2D+Day+19+%2D+Advent+of+Code+2024&url=https%3A%2F%2Fadventofcode%2Ecom%2F2024%2Fday%2F19&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.
+At this point, you should [return to your Advent calendar](/2024) and try another puzzle.
+
+If you still want to see it, you can [get your puzzle input](19/input).
+
+You can also [Shareon [Bluesky](https://bsky.app/intent/compose?text=I%27ve+completed+%22Linen+Layout%22+%2D+Day+19+%2D+Advent+of+Code+2024+%23AdventOfCode+https%3A%2F%2Fadventofcode%2Ecom%2F2024%2Fday%2F19) [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+%22Linen+Layout%22+%2D+Day+19+%2D+Advent+of+Code+2024&url=https%3A%2F%2Fadventofcode%2Ecom%2F2024%2Fday%2F19&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.
