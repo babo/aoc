@@ -60,6 +60,6 @@ mod tests {
     #[test]
     fn test_solution_b() {
         let c = content().unwrap();
-        assert_eq!(solution_b(&c), 1);
+        assert_eq!(solution_b(&c), 985332);
     }
 }

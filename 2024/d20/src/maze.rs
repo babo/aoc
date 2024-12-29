@@ -12,6 +12,13 @@ fn heuristic((x1, y1): (isize, isize), (x2, y2): (isize, isize)) -> isize {
     (x1 - x2).abs() + (y1 - y2).abs()
 }
 
+fn hash_path(from: &(isize, isize), to: &(isize, isize)) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    from.hash(&mut hasher);
+    to.hash(&mut hasher);
+    hasher.finish()
+}
+
 impl Maze {
     pub(crate) fn new(input: &str) -> Self {
         let maze = input
@@ -64,61 +71,83 @@ impl Maze {
                 initial_path.insert(*p, *c);
             });
 
-            let mut tried = HashSet::new();
+            let mut results: HashMap<u64, isize> = HashMap::new();
+            let mut open_set: HashMap<(isize, isize), ((isize, isize), isize)> = HashMap::new();
             path.iter().enumerate().for_each(|(step, (orig, _))| {
                 let step = step as isize;
 
-                let new_round = (0..20).fold(HashMap::new(), |mut acc, round| {
-                    if round == 0 {
-                        acc.insert(*orig, 0);
-                    }
-                    let mut this_round = vec![];
-                    acc.keys().for_each(|(x, y)| {
-                        [(0isize, 1isize), (0, -1), (1, 0), (-1, 0)]
-                            .iter()
-                            .for_each(|(dx, dy)| {
-                                if round != 19 || self.mc(x + dx, y + dy) != '#' {
-                                    this_round.push((x + dx, y + dy));
-                                }
-                            });
-                    });
-                    if round == 0 {
-                        acc.remove(orig);
-                    }
-                    this_round.iter().for_each(|p| {
-                        if !acc.contains_key(p)
-                            && (!initial_path.contains_key(p) || initial_path[p] > step + round + 1)
-                        {
-                            acc.insert(*p, round + 1);
+                let new_round: HashMap<(isize, isize), isize> =
+                    (0..20).fold(HashMap::new(), |mut neighbours, round| {
+                        if round == 0 {
+                            neighbours.insert(*orig, 0);
                         }
+                        let mut this_round = vec![];
+                        neighbours.keys().for_each(|(x, y)| {
+                            [(0isize, 1isize), (0, -1), (1, 0), (-1, 0)]
+                                .iter()
+                                .for_each(|(dx, dy)| {
+                                    if x + dx > 0
+                                        && x + dx < self.w
+                                        && y + dy > 0
+                                        && y + dy < self.h
+                                    {
+                                        this_round.push((x + dx, y + dy));
+                                    }
+                                });
+                        });
+                        if round == 0 {
+                            neighbours.remove(orig);
+                        }
+                        this_round.iter().for_each(|p| {
+                            if !neighbours.contains_key(p) {
+                                neighbours.insert(*p, round + 1);
+                            }
+                        });
+                        neighbours
                     });
-                    acc
-                });
-
                 new_round.iter().for_each(|(p, sub)| {
-                    if let Some((path, c)) = self.astar(*p, cost - step - *sub) {
-                        let mut hasher = DefaultHasher::new();
-                        path.iter().for_each(|(p, _)| p.hash(&mut hasher));
-                        let h = hasher.finish();
-                        tried.insert((*p, step + sub + c, h));
+                    if self.mc(p.0, p.1) != '#' {
+                        if let Some(v) = open_set.get(p) {
+                            if v.1 > step + *sub {
+                                open_set.insert(*p, (*orig, step + *sub));
+                            }
+                        } else if !initial_path.contains_key(p) {
+                            if let Some(v) = open_set.get(p) {
+                                if v.1 > step + *sub {
+                                    open_set.insert(*p, (*orig, step + *sub));
+                                }
+                            } else {
+                                open_set.insert(*p, (*orig, step + *sub));
+                            }
+                        } else if let Some(initial_step) = initial_path.get(p) {
+                            let diff = initial_step - (step + sub);
+                            if diff >= margin {
+                                results
+                                    .insert(hash_path(orig, p), step + sub + cost - initial_step);
+                            }
+                        }
                     }
                 });
             });
 
-            let v: HashSet<isize> =
-                HashSet::from_iter(tried.iter().map(|x| x.1).filter(|x| *x + margin <= cost));
-            for x in v.iter().sorted() {
-                println!(
-                    "{} saves {}",
-                    tried.iter().filter(|y| y.1 == *x).count(),
-                    cost - x
-                );
-            }
-            tried.iter().filter(|y| y.1 == cost - 76).for_each(|x| {
-                println!("{:?}", x);
+            open_set.iter().for_each(|(to, (from, sub))| {
+                if let Some((_, c)) = self.astar(*to, cost - *sub) {
+                    results.insert(hash_path(from, to), sub + c);
+                }
             });
 
-            tried.iter().filter(|c| c.1 + margin <= cost).count()
+            if margin < 100 {
+                let v: HashSet<isize> =
+                    HashSet::from_iter(results.values().copied().filter(|x| x + margin <= cost));
+                for x in v.iter().sorted() {
+                    println!(
+                        "{} saves {}",
+                        results.values().filter(|y| *y == x).count(),
+                        cost - x
+                    );
+                }
+            }
+            results.values().filter(|c| *c + margin <= cost).count()
         } else {
             0
         }

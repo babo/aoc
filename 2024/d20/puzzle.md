@@ -140,8 +140,6 @@ You aren't sure what the conditions of the racetrack will be like, so to give yo
 
 Your puzzle answer was `1463`.
 
-The first half of this puzzle is complete! It provides one gold star: \*
-
 \--- Part Two ---
 ----------
 
@@ -210,8 +208,12 @@ You'll still need a list of the best cheats, but now there are even more to choo
 
 Find the best cheats using the updated cheating rules. *How many cheats would save you at least 100 picoseconds?*
 
-Answer:
+Your puzzle answer was `985332`.
 
-Although it hasn't changed, you can still [get your puzzle input](20/input).
+Both parts of this puzzle are complete! They provide two gold stars: \*\*
 
-You can also [Shareon [Bluesky](https://bsky.app/intent/compose?text=I%27ve+completed+Part+One+of+%22Race+Condition%22+%2D+Day+20+%2D+Advent+of+Code+2024+%23AdventOfCode+https%3A%2F%2Fadventofcode%2Ecom%2F2024%2Fday%2F20) [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+Part+One+of+%22Race+Condition%22+%2D+Day+20+%2D+Advent+of+Code+2024&url=https%3A%2F%2Fadventofcode%2Ecom%2F2024%2Fday%2F20&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.
+At this point, you should [return to your Advent calendar](/2024) and try another puzzle.
+
+If you still want to see it, you can [get your puzzle input](20/input).
+
+You can also [Shareon [Bluesky](https://bsky.app/intent/compose?text=I%27ve+completed+%22Race+Condition%22+%2D+Day+20+%2D+Advent+of+Code+2024+%23AdventOfCode+https%3A%2F%2Fadventofcode%2Ecom%2F2024%2Fday%2F20) [Twitter](https://twitter.com/intent/tweet?text=I%27ve+completed+%22Race+Condition%22+%2D+Day+20+%2D+Advent+of+Code+2024&url=https%3A%2F%2Fadventofcode%2Ecom%2F2024%2Fday%2F20&related=ericwastl&hashtags=AdventOfCode) [Mastodon](javascript:void(0);)] this puzzle.
