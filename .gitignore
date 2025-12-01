@@ -3,6 +3,7 @@
 .envrc
 .ipynb_checkpoints/
 .nvimlog
+.ruff_cache/
 .vscode/
 Cargo.lock
 target/
