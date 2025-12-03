@@ -1,0 +1,13 @@
+[package]
+name = "d03"
+version = "0.1.0"
+authors = ["Attila Babo <attila.babo@gmail.com>"]
+edition = "2024"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+itertools = "0.14.0"
+
+[dev-dependencies]
+pretty_assertions = "1.4.1"
